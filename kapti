@@ -22,6 +22,11 @@ h1 {
     padding: 0;
 }
 
+.subtitle {
+    font-size: 100%;
+    padding-bottom: 12px;
+}
+
 p {
     margin: 0;
     padding: 0;
@@ -160,10 +165,25 @@ class Window(QWidget):
 
 
     def showInfo(self, name):
-        info = htmlize(pkgutils.getPackageInfo(name))
+        info = pkgutils.getPackageInfo(name)
+        lst = []
+        for key in "Section", \
+            "Depends", "Suggests", "Recommends", \
+            "Conflicts", "Replaces", "Bugs":
+            if key in info:
+                value = htmlize(info[key])
+                lst.append("<li>%s: %s</li>" % (key, value))
+
+        version = info["Version"]
+        site = htmlize(info.get("Homepage", ""))
+        subtitle, description = info["Description"].split("\n", 1)
+
         html = HTML_HEADER \
             + "<span class='action'><a href='back:'>Back</a></span>" \
-            + info + HTML_FOOTER
+            + "<h1>%s %s %s</h1>" % (name, version, site) \
+            + "<div class='subtitle'>" + htmlize(subtitle) + "</div>" \
+            + "<div>" + htmlize(description) + "</div>" \
+            + "<ul>" + "".join(lst) + "</ul>" + HTML_FOOTER
         self.packageView.setHtml(html)
 
 

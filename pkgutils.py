@@ -23,6 +23,18 @@ def isPackagedInstalled(name):
 
 def getPackageInfo(name):
     out = Popen(["apt-cache", "show", name], stdout=PIPE).stdout
-    return out.read()
+    info = {}
+    lastKey = None
+    for line in out.readlines():
+        if line[0] == " ":
+            line = line.strip()
+            if line == ".":
+                line = ""
+            info[lastKey] = info[lastKey] + '\n' + line
+        elif ":" in line:
+            key, value = [x.strip() for x in line.split(":", 1)]
+            info[key] = value
+            lastKey = key
+    return info
 
 # vi: ts=4 sw=4 et
