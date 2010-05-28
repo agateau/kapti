@@ -1,0 +1,166 @@
+#!/usr/bin/env python
+import re
+import sys
+from subprocess import *
+
+from PyQt4.QtCore import *
+from PyQt4.QtGui import *
+from PyQt4.QtWebKit import *
+
+from PyKDE4.kdecore import *
+from PyKDE4.kdeui import *
+
+import pkgutils
+
+HTML_HEADER=u"""
+<html>
+<head>
+<style>
+h1 {
+    font-size: 120%;
+    margin: 0;
+    padding: 0;
+}
+
+p {
+    margin: 0;
+    padding: 0;
+}
+
+.action {
+    float: right;
+}
+
+.package {
+    padding-bottom: 4px;
+    padding-top: 4px;
+    border-bottom: 1px solid #ccc;
+}
+
+.error {
+    background-color: #fcc;
+    border: 1px solid red;
+    padding: 4px;
+}
+</style>
+</head>
+<body>
+"""
+
+HTML_FOOTER=u"""
+</body>
+</html>
+"""
+
+def generateHtml(name, description, isInstalled):
+    if isInstalled:
+        actionScheme = "remove"
+        actionText = i18n("Remove")
+    else:
+        actionScheme = "install"
+        actionText = i18n("Install")
+
+    infoActionText = i18n("Information")
+
+    return u"""<div class='package'>
+    <span class='action'><a href='%(actionScheme)s:%(name)s'>%(actionText)s</a>
+    | <a href='info:%(name)s'>%(infoActionText)s</a></span>
+    <h1>%(name)s</h1>
+    <p>%(description)s</p>
+    </div>""" % locals()
+
+
+def install(name):
+    comment = i18n("Kapti needs your password to install %1.", name)
+    runApt(comment, pkgutils.installCommand(name))
+
+
+def remove(name):
+    comment = i18n("Kapti needs your password to remove %1.", name)
+    runApt(comment, pkgutils.removeCommand(name))
+
+
+def runApt(comment, cmd):
+    cmd = "xterm -e '%s'" % cmd
+    call(["kdesudo", "-d", "--comment", comment, "-c", cmd])
+
+
+def htmlize(text):
+    text = text.replace("\n", "<br>")
+    return unicode(KStringHandler.tagUrls(text))
+
+
+class Window(QWidget):
+    def __init__(self):
+        QWidget.__init__(self)
+        self.search = KLineEdit(self)
+        self.search.setClickMessage(i18n("Search"))
+        self.packageView = QWebView(self)
+        self.packageView.page().setLinkDelegationPolicy(QWebPage.DelegateAllLinks)
+        layout = QVBoxLayout(self)
+        layout.addWidget(self.search)
+        layout.addWidget(self.packageView)
+
+        QObject.connect(self.search, SIGNAL("returnPressed()"), self.startSearch)
+
+        QObject.connect(self.packageView, SIGNAL("linkClicked(const QUrl&)"), self.slotLinkClicked)
+
+    def startSearch(self):
+        criterias = unicode(self.search.text()).split(" ")
+        packages = pkgutils.searchPackages(criterias)
+
+        if len(packages) > 0:
+            lst = []
+            for name, description in packages:
+                isInstalled = pkgutils.isPackagedInstalled(name)
+                lst.append(generateHtml(name, description, isInstalled))
+            content = "".join(lst)
+        else:
+            content = "<div class='error'>%s</div>" % i18n("Sorry, could not find any package matching \"%1\".", " ".join(criterias))
+
+        html = HTML_HEADER + content + HTML_FOOTER
+        self.packageView.setHtml(html)
+
+    def slotLinkClicked(self, url):
+        action = unicode(url.scheme())
+        path = unicode(url.path())
+        if action == "install":
+            install(path)
+            self.startSearch()
+        elif action == "remove":
+            remove(path)
+            self.startSearch()
+        elif action == "info":
+            self.showInfo(path)
+        elif action == "back":
+            self.startSearch()
+        else:
+            QDesktopServices.openUrl(url)
+
+
+    def showInfo(self, name):
+        info = htmlize(pkgutils.getPackageInfo(name))
+        html = HTML_HEADER \
+            + "<span class='action'><a href='back:'>Back</a></span>" \
+            + info + HTML_FOOTER
+        self.packageView.setHtml(html)
+
+
+def main():
+    KCmdLineArgs.init(sys.argv,
+        "kapti",
+        "",
+        ki18n("Kapti"),
+        "1.0",
+        ki18n("Super simple frontend to install and remove packages"))
+    app = KApplication()
+    window = Window()
+
+    window.show()
+    app.exec_()
+    return 0
+
+
+if __name__=="__main__":
+    sys.exit(main())
+# vi: ts=4 sw=4 et
