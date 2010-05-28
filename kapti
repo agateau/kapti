@@ -17,7 +17,7 @@ HTML_HEADER=u"""
 <head>
 <style>
 h1 {
-    font-size: 120%;
+    font-size: 100%;
     margin: 0;
     padding: 0;
 }
@@ -31,17 +31,32 @@ p {
     float: right;
 }
 
+body {
+    margin: 4px;
+}
+
 .package {
-    padding-bottom: 4px;
-    padding-top: 4px;
-    border-bottom: 1px solid #ccc;
+    padding-bottom: 6px;
+    margin-bottom: 6px;
+    border-bottom: 1px dotted #ccc;
 }
 
 .error {
+    margin-top: 12px;
     background-color: #fcc;
     border: 1px solid red;
-    padding: 4px;
+    line-height: 150%;
+    padding: 8px;
 }
+
+.information {
+    background-color: #cfc;
+    border: 1px solid green;
+    line-height: 150%;
+    margin-top: 12px;
+    padding: 8px;
+}
+
 </style>
 </head>
 <body>
@@ -52,6 +67,14 @@ HTML_FOOTER=u"""
 </html>
 """
 
+HTML_WELCOME=u"""
+<div class='information'>
+<p>Welcome to Kapti, a simple tool to install or remove packages.</p>
+
+<p>To get started, enter a search term in the field above and press Enter.</p>
+</div>
+"""
+
 def generateHtml(name, description, isInstalled):
     if isInstalled:
         actionScheme = "remove"
@@ -60,13 +83,10 @@ def generateHtml(name, description, isInstalled):
         actionScheme = "install"
         actionText = i18n("Install")
 
-    infoActionText = i18n("Information")
-
     return u"""<div class='package'>
-    <span class='action'><a href='%(actionScheme)s:%(name)s'>%(actionText)s</a>
-    | <a href='info:%(name)s'>%(infoActionText)s</a></span>
-    <h1>%(name)s</h1>
-    <p>%(description)s</p>
+    <h1><a href='info:%(name)s'>%(name)s</a></h1>
+    <span class='action'><a href='%(actionScheme)s:%(name)s'>%(actionText)s</a></span>
+    <p>%(description)s.</p>
     </div>""" % locals()
 
 
@@ -97,6 +117,7 @@ class Window(QWidget):
         self.search.setClickMessage(i18n("Search"))
         self.packageView = QWebView(self)
         self.packageView.page().setLinkDelegationPolicy(QWebPage.DelegateAllLinks)
+        self.packageView.setHtml(HTML_HEADER + HTML_WELCOME + HTML_FOOTER)
         layout = QVBoxLayout(self)
         layout.addWidget(self.search)
         layout.addWidget(self.packageView)
