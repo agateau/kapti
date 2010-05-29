@@ -33,8 +33,6 @@ def isPackageInstalled(name):
     if _installedPackages is None:
         updateInstalledPackageList()
     return name in _installedPackages
-    lstFile = "/var/lib/dpkg/info/%s.list" % name
-    return os.path.exists(lstFile)
 
 def getPackageInfo(name):
     out = Popen(["apt-cache", "show", name], stdout=PIPE).stdout
