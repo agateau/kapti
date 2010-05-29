@@ -6,7 +6,7 @@ def searchPackages(searchTerms):
     out = Popen(["apt-cache", "search"] + searchTerms, stdout=PIPE).stdout
     lst = []
     for line in out.readlines():
-        line = line.strip()
+        line = unicode(line.strip(), "utf-8")
         lst.append(line.split(" - ", 1))
     lst.sort(cmp=lambda x,y: cmp(x[0], y[0]))
     return lst
@@ -41,6 +41,7 @@ def getPackageInfo(name):
     info = {}
     lastKey = None
     for line in out.readlines():
+        line = unicode(line, "utf-8")
         if line[0] == " ":
             line = line.strip()
             if line == ".":
