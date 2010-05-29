@@ -80,17 +80,11 @@ HTML_WELCOME=u"""
 </div>
 """
 
-def generateHtml(name, description, isInstalled):
-    if isInstalled:
-        actionScheme = "remove"
-        actionText = i18n("Remove")
-    else:
-        actionScheme = "install"
-        actionText = i18n("Install")
-
+def generateHtmlForPackageListItem(name, description):
+    actionLink = createInstallRemoveLink(name)
     return u"""<div class='package'>
     <h1><a href='info:%(name)s'>%(name)s</a></h1>
-    <span class='action'><a href='%(actionScheme)s:%(name)s'>%(actionText)s</a></span>
+    <span class='action'>%(actionLink)s</a></span>
     <p>%(description)s.</p>
     </div>""" % locals()
 
@@ -113,6 +107,16 @@ def runApt(comment, cmd):
 def htmlize(text):
     text = text.replace("\n", "<br>")
     return unicode(KStringHandler.tagUrls(text))
+
+
+def createInstallRemoveLink(name):
+    if pkgutils.isPackagedInstalled(name):
+        url = "install:" + name
+        text = i18n("Install")
+    else:
+        url = "remove:" + name
+        text = i18n("Remove")
+    return "<a href='%s'>%s</a>" % (url, text)
 
 
 class Window(QWidget):
@@ -138,8 +142,7 @@ class Window(QWidget):
         if len(packages) > 0:
             lst = []
             for name, description in packages:
-                isInstalled = pkgutils.isPackagedInstalled(name)
-                lst.append(generateHtml(name, description, isInstalled))
+                lst.append(generateHtmlForPackageListItem(name, description))
             content = "".join(lst)
         else:
             content = "<div class='error'>%s</div>" % i18n("Sorry, could not find any package matching \"%1\".", " ".join(criterias))
@@ -166,6 +169,7 @@ class Window(QWidget):
 
     def showInfo(self, name):
         info = pkgutils.getPackageInfo(name)
+        actionLink = createInstallRemoveLink(name)
         lst = []
         for key in "Section", \
             "Depends", "Suggests", "Recommends", \
@@ -179,7 +183,7 @@ class Window(QWidget):
         subtitle, description = info["Description"].split("\n", 1)
 
         html = HTML_HEADER \
-            + "<span class='action'><a href='back:'>Back</a></span>" \
+            + "<span class='action'><a href='back:'>Back</a> | %s</span>" % actionLink \
             + "<h1>%s %s %s</h1>" % (name, version, site) \
             + "<div class='subtitle'>" + htmlize(subtitle) + "</div>" \
             + "<div>" + htmlize(description) + "</div>" \
