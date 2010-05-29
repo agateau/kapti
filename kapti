@@ -179,14 +179,18 @@ class Window(QWidget):
                 lst.append("<dt>%s</dt><dd>%s</dd>" % (key, value))
 
         version = info["Version"]
-        site = htmlize(info.get("Homepage", ""))
+        if "Homepage" in info:
+            site = "<div class='site'>" + htmlize(info["Homepage"]) + "</div>"
+        else:
+            site = ""
         subtitle, description = info["Description"].split("\n", 1)
 
         html = HTML_HEADER \
             + "<span class='action'><a href='back:'>Back</a> | %s</span>" % actionLink \
-            + "<h1>%s %s %s</h1>" % (name, version, site) \
+            + "<h1>%s %s</h1>" % (name, version) \
+            + site \
             + "<div class='subtitle'>" + htmlize(subtitle) + "</div>" \
-            + "<div>" + htmlize(description) + "</div>" \
+            + "<div class='description'>" + htmlize(description) + "</div>" \
             + "<dl>" + "".join(lst) + "</dl>" + HTML_FOOTER
         self.packageView.setHtml(html)
 
