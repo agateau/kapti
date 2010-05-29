@@ -109,9 +109,9 @@ def createInstallRemoveLink(name):
     return "<a href='%s'>%s</a>" % (url, text)
 
 
-class Window(QWidget):
+class Window(KMainWindow):
     def __init__(self):
-        QWidget.__init__(self)
+        KMainWindow.__init__(self)
         self.history = [QUrl("welcome:/")]
         self.posInHistory = 0
         self.createActions()
@@ -123,27 +123,16 @@ class Window(QWidget):
         self.forwardAction = KStandardAction.forward(self.goForward, self)
 
     def createUi(self):
-        self.backButton = QToolButton(self)
-        self.backButton.setAutoRaise(True)
-        self.backButton.setDefaultAction(self.backAction)
-
-        self.forwardButton = QToolButton(self)
-        self.forwardButton.setAutoRaise(True)
-        self.forwardButton.setDefaultAction(self.forwardAction)
+        self.toolBar().addAction(self.backAction)
+        self.toolBar().addAction(self.forwardAction)
 
         self.searchLineEdit = KLineEdit(self)
         self.searchLineEdit.setClickMessage(i18n("Search"))
-
-        barLayout = QHBoxLayout()
-        barLayout.addWidget(self.backButton)
-        barLayout.addWidget(self.forwardButton)
-        barLayout.addWidget(self.searchLineEdit)
+        self.toolBar().addWidget(self.searchLineEdit)
 
         self.packageView = QWebView(self)
         self.packageView.page().setLinkDelegationPolicy(QWebPage.DelegateAllLinks)
-        layout = QVBoxLayout(self)
-        layout.addItem(barLayout)
-        layout.addWidget(self.packageView)
+        self.setCentralWidget(self.packageView)
 
         QObject.connect(self.searchLineEdit, SIGNAL("returnPressed()"), self.startSearch)
 
