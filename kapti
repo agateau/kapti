@@ -153,8 +153,6 @@ class Window(QWidget):
         self.searchLineEdit.setFocus()
 
     def updateHistoryActions(self):
-        print self.posInHistory
-        print self.history
         self.backAction.setEnabled(self.posInHistory > 0)
         self.forwardAction.setEnabled(self.posInHistory < len(self.history) - 1)
 
