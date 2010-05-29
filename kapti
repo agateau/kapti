@@ -89,16 +89,6 @@ def generateHtmlForPackageListItem(name, description):
     </div>""" % locals()
 
 
-def install(name):
-    comment = i18n("Kapti needs your password to install %1.", name)
-    runApt(comment, pkgmanager.installCommand(name))
-
-
-def remove(name):
-    comment = i18n("Kapti needs your password to remove %1.", name)
-    runApt(comment, pkgmanager.removeCommand(name))
-
-
 def runApt(comment, cmd):
     cmd = "xterm -e '%s'" % cmd
     call(["kdesudo", "-d", "--comment", comment, "-c", cmd])
@@ -203,12 +193,14 @@ class Window(QWidget):
         else:
             QDesktopServices.openUrl(url)
 
-    def url_install(self, arg):
-        install(path)
+    def url_install(self, name):
+        comment = i18n("Kapti needs your password to install %1.", name)
+        runApt(comment, pkgmanager.installCommand(name))
         self.refresh()
 
-    def url_remove(self, arg):
-        remove(path)
+    def url_remove(self, name):
+        comment = i18n("Kapti needs your password to remove %1.", name)
+        runApt(comment, pkgmanager.removeCommand(name))
         self.refresh()
 
     def url_welcome(self, arg):
