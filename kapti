@@ -176,7 +176,7 @@ class Window(QWidget):
             "Conflicts", "Replaces", "Bugs":
             if key in info:
                 value = htmlize(info[key])
-                lst.append("<li>%s: %s</li>" % (key, value))
+                lst.append("<dt>%s</dt><dd>%s</dd>" % (key, value))
 
         version = info["Version"]
         site = htmlize(info.get("Homepage", ""))
@@ -187,7 +187,7 @@ class Window(QWidget):
             + "<h1>%s %s %s</h1>" % (name, version, site) \
             + "<div class='subtitle'>" + htmlize(subtitle) + "</div>" \
             + "<div>" + htmlize(description) + "</div>" \
-            + "<ul>" + "".join(lst) + "</ul>" + HTML_FOOTER
+            + "<dl>" + "".join(lst) + "</dl>" + HTML_FOOTER
         self.packageView.setHtml(html)
 
 
