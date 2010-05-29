@@ -17,7 +17,22 @@ def installCommand(name):
 def removeCommand(name):
     return "apt-get remove %s" % name
 
-def isPackagedInstalled(name):
+_installedPackages = None
+def updateInstalledPackageList():
+    global _installedPackages
+    out = Popen(["dpkg", "--get-selections"], stdout=PIPE).stdout
+    _installedPackages = []
+    for line in out.readlines():
+        line = line.strip()
+        if not line.endswith("deinstall"):
+            name = line.split("\t", 1)[0]
+            _installedPackages.append(name)
+
+def isPackageInstalled(name):
+    global _installedPackages
+    if _installedPackages is None:
+        updateInstalledPackageList()
+    return name in _installedPackages
     lstFile = "/var/lib/dpkg/info/%s.list" % name
     return os.path.exists(lstFile)
 

@@ -89,18 +89,13 @@ def generateHtmlForPackageListItem(name, description):
     </div>""" % locals()
 
 
-def runApt(comment, cmd):
-    cmd = "xterm -e '%s'" % cmd
-    call(["kdesudo", "-d", "--comment", comment, "-c", cmd])
-
-
 def htmlize(text):
     text = text.replace("\n", "<br>")
     return unicode(KStringHandler.tagUrls(text))
 
 
 def createInstallRemoveLink(name):
-    if pkgmanager.isPackagedInstalled(name):
+    if pkgmanager.isPackageInstalled(name):
         url = "remove:" + name
         text = i18n("Remove")
     else:
@@ -176,6 +171,14 @@ class Window(QWidget):
     def openUrl(self, url, addToHistory=True):
         action = unicode(url.scheme())
         path = unicode(url.path())
+
+        if action == "install":
+            self.install(path)
+            return
+        if action == "remove":
+            self.remove(path)
+            return
+
         try:
             method = getattr(self, "url_" + action)
         except AttributeError:
@@ -191,14 +194,18 @@ class Window(QWidget):
         else:
             QDesktopServices.openUrl(url)
 
-    def url_install(self, name):
+    def install(self, name):
         comment = i18n("Kapti needs your password to install %1.", name)
-        runApt(comment, pkgmanager.installCommand(name))
-        self.refresh()
+        self.installRemove(comment, pkgmanager.installCommand(name))
 
-    def url_remove(self, name):
+    def remove(self, name):
         comment = i18n("Kapti needs your password to remove %1.", name)
-        runApt(comment, pkgmanager.removeCommand(name))
+        self.installRemove(comment, pkgmanager.removeCommand(name))
+
+    def installRemove(self, comment, cmd):
+        cmd = "xterm -e '%s'" % cmd
+        call(["kdesudo", "-d", "--comment", comment, "-c", cmd])
+        pkgmanager.updateInstalledPackageList()
         self.refresh()
 
     def url_welcome(self, arg):
