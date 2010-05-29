@@ -258,8 +258,21 @@ def main():
         ki18n("Kapti"),
         "1.0",
         ki18n("Super simple frontend to install and remove packages"))
+
+    options = KCmdLineOptions()
+    options.add("+[search terms]", ki18n("Search terms"))
+    KCmdLineArgs.addCmdLineOptions(options)
+
     app = KApplication()
+
     window = Window()
+    args = KCmdLineArgs.parsedArgs()
+    if args.count() > 0:
+        lst = []
+        for pos in range(args.count()):
+            lst.append(unicode(args.arg(pos)))
+        window.searchLineEdit.setText(" ".join(lst))
+        QTimer.singleShot(0, window.startSearch)
 
     window.show()
     app.exec_()
