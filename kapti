@@ -122,23 +122,101 @@ def createInstallRemoveLink(name):
 class Window(QWidget):
     def __init__(self):
         QWidget.__init__(self)
-        self.search = KLineEdit(self)
-        self.search.setClickMessage(i18n("Search"))
+        self.history = [QUrl("welcome:/")]
+        self.posInHistory = 0
+        self.createActions()
+        self.createUi()
+        self.refresh()
+
+    def createActions(self):
+        self.backAction = KStandardAction.back(self.goBack, self)
+        self.forwardAction = KStandardAction.forward(self.goForward, self)
+
+    def createUi(self):
+        self.backButton = QToolButton(self)
+        self.backButton.setAutoRaise(True)
+        self.backButton.setDefaultAction(self.backAction)
+
+        self.forwardButton = QToolButton(self)
+        self.forwardButton.setAutoRaise(True)
+        self.forwardButton.setDefaultAction(self.forwardAction)
+
+        self.searchLineEdit = KLineEdit(self)
+        self.searchLineEdit.setClickMessage(i18n("Search"))
+
+        barLayout = QHBoxLayout()
+        barLayout.addWidget(self.backButton)
+        barLayout.addWidget(self.forwardButton)
+        barLayout.addWidget(self.searchLineEdit)
+
         self.packageView = QWebView(self)
         self.packageView.page().setLinkDelegationPolicy(QWebPage.DelegateAllLinks)
-        self.packageView.setHtml(HTML_HEADER + HTML_WELCOME + HTML_FOOTER)
         layout = QVBoxLayout(self)
-        layout.addWidget(self.search)
+        layout.addItem(barLayout)
         layout.addWidget(self.packageView)
 
-        QObject.connect(self.search, SIGNAL("returnPressed()"), self.startSearch)
+        QObject.connect(self.searchLineEdit, SIGNAL("returnPressed()"), self.startSearch)
 
-        QObject.connect(self.packageView, SIGNAL("linkClicked(const QUrl&)"), self.slotLinkClicked)
+        QObject.connect(self.packageView, SIGNAL("linkClicked(const QUrl&)"), self.openUrl)
+
+        self.updateHistoryActions()
+        self.searchLineEdit.setFocus()
+
+    def updateHistoryActions(self):
+        print self.posInHistory
+        print self.history
+        self.backAction.setEnabled(self.posInHistory > 0)
+        self.forwardAction.setEnabled(self.posInHistory < len(self.history) - 1)
+
+    def goBack(self):
+        self.posInHistory -= 1
+        self.refresh()
+        self.updateHistoryActions()
+
+    def goForward(self):
+        self.posInHistory += 1
+        self.refresh()
+        self.updateHistoryActions()
 
     def startSearch(self):
-        criterias = unicode(self.search.text()).split(" ")
-        packages = pkgmanager.searchPackages(criterias)
+        criterias = self.searchLineEdit.text()
+        self.openUrl(QUrl("search:" + criterias))
 
+    def refresh(self):
+        self.openUrl(self.history[self.posInHistory], addToHistory=False)
+
+    def openUrl(self, url, addToHistory=True):
+        action = unicode(url.scheme())
+        path = unicode(url.path())
+        try:
+            method = getattr(self, "url_" + action)
+        except AttributeError:
+            method = None
+
+        if method:
+            method(path)
+            if addToHistory:
+                self.history = self.history[:self.posInHistory + 1]
+                self.history.append(url)
+                self.posInHistory += 1
+                self.updateHistoryActions()
+        else:
+            QDesktopServices.openUrl(url)
+
+    def url_install(self, arg):
+        install(path)
+        self.refresh()
+
+    def url_remove(self, arg):
+        remove(path)
+        self.refresh()
+
+    def url_welcome(self, arg):
+        self.packageView.setHtml(HTML_HEADER + HTML_WELCOME + HTML_FOOTER)
+
+    def url_search(self, arg):
+        criterias = arg.split(" ")
+        packages = pkgmanager.searchPackages(criterias)
         if len(packages) > 0:
             lst = []
             for name, description in packages:
@@ -150,24 +228,7 @@ class Window(QWidget):
         html = HTML_HEADER + content + HTML_FOOTER
         self.packageView.setHtml(html)
 
-    def slotLinkClicked(self, url):
-        action = unicode(url.scheme())
-        path = unicode(url.path())
-        if action == "install":
-            install(path)
-            self.startSearch()
-        elif action == "remove":
-            remove(path)
-            self.startSearch()
-        elif action == "info":
-            self.showInfo(path)
-        elif action == "back":
-            self.startSearch()
-        else:
-            QDesktopServices.openUrl(url)
-
-
-    def showInfo(self, name):
+    def url_info(self, name):
         info = pkgmanager.getPackageInfo(name)
         actionLink = createInstallRemoveLink(name)
         lst = []
@@ -186,7 +247,7 @@ class Window(QWidget):
         subtitle, description = info["Description"].split("\n", 1)
 
         html = HTML_HEADER \
-            + "<span class='action'><a href='back:'>Back</a> | %s</span>" % actionLink \
+            + "<span class='action'>%s</span>" % actionLink \
             + "<h1>%s %s</h1>" % (name, version) \
             + site \
             + "<div class='subtitle'>" + htmlize(subtitle) + "</div>" \
