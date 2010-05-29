@@ -111,11 +111,11 @@ def htmlize(text):
 
 def createInstallRemoveLink(name):
     if pkgutils.isPackagedInstalled(name):
-        url = "install:" + name
-        text = i18n("Install")
-    else:
         url = "remove:" + name
         text = i18n("Remove")
+    else:
+        url = "install:" + name
+        text = i18n("Install")
     return "<a href='%s'>%s</a>" % (url, text)
 
 
