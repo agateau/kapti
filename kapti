@@ -94,7 +94,7 @@ def htmlize(text):
     return unicode(KStringHandler.tagUrls(text))
 
 
-PKG_RX = re.compile(r"(^| )([a-z0-9][-+a-z0-9]*\w)")
+PKG_RX = re.compile(r"(^|, )([a-z0-9][-.+a-z0-9]*\w)")
 def pkgHtmlize(text):
     return PKG_RX.sub(r"\1<a href='info:\2'>\2</a>", text)
 
