@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# encoding: utf-8
 import re
 import sys
 from subprocess import *
@@ -252,12 +253,17 @@ class Window(KMainWindow):
 
 
 def main():
-    KCmdLineArgs.init(sys.argv,
-        "kapti",
-        "",
-        ki18n("Kapti"),
-        "1.0",
-        ki18n("Super simple frontend to install and remove packages"))
+    aboutData = KAboutData(
+        "kapti", # appName
+        "", # catalogName
+        ki18n("Kapti"), # programName
+        "1.0")
+    aboutData.setLicense(KAboutData.License_GPL_V3)
+    aboutData.setShortDescription(ki18n("Simple frontend to install and remove packages"))
+    aboutData.setCopyrightStatement(ki18n("(c) 2010 Aurélien Gâteau"))
+    aboutData.setProgramIconName("application-x-deb")
+
+    KCmdLineArgs.init(sys.argv, aboutData)
 
     options = KCmdLineOptions()
     options.add("+[search terms]", ki18n("Search terms"))
