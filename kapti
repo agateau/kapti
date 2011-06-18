@@ -95,6 +95,18 @@ def htmlize(text):
     return unicode(KStringHandler.tagUrls(text))
 
 
+def extractDescription(info):
+    subtitle = ""
+    description = ""
+
+    for field in info.keys():
+        if field == "Description" or field.startswith("Description-"):
+            subtitle, description = info[field].split("\n", 1)
+            break
+
+    return subtitle, description
+
+
 PKG_RX = re.compile(r"(^|, )([a-z0-9][-.+a-z0-9]*\w)")
 def pkgHtmlize(text):
     return PKG_RX.sub(r"\1<a href='info:\2'>\2</a>", text)
@@ -240,7 +252,7 @@ class Window(KMainWindow):
             site = "<div class='site'>" + htmlize(info["Homepage"]) + "</div>"
         else:
             site = ""
-        subtitle, description = info["Description"].split("\n", 1)
+        subtitle, description = extractDescription(info)
 
         html = HTML_HEADER \
             + "<span class='action'>%s</span>" % actionLink \
