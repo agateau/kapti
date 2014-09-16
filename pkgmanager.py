@@ -1,14 +1,20 @@
 #!/usr/bin/env python
-import os
 from subprocess import *
+
+from collections import namedtuple
+
+Package = namedtuple("Package", ["name", "description", "isInstalled"])
+
 
 def searchPackages(searchTerms):
     out = Popen(["apt-cache", "search"] + searchTerms, stdout=PIPE).stdout
     lst = []
     for line in out.readlines():
         line = unicode(line.strip(), "utf-8")
-        lst.append(line.split(" - ", 1))
-    lst.sort(cmp=lambda x,y: cmp(x[0], y[0]))
+        name, description = line.split(" - ", 1)
+        isInstalled = isPackageInstalled(name)
+        lst.append(Package(name, description, isInstalled))
+    lst.sort(key=lambda x: x.name)
     return lst
 
 def installCommand(name):

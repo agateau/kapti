@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<span class='action'>
+    <a href='{{ "remove" if isInstalled else "install" }}:{{ name }}'>
+        {{ "Remove" if isInstalled else "Install" }}
+    </a>
+</span>
+
+<h1>{{ name }} {{ version }}</h1>
+{% if info %}
+    <div class='site'>{{ info }}</div>
+{% endif %}
+
+<img class='thumbnail' src='http://screenshots.debian.net/thumbnail/{{ name }}'>
+
+<div class='subtitle'>{{ subtitle }}</div>
+<div class='description'>{{ description }}</div>
+
+<dl>
+{% for key, value in relatedPackages %}
+    <dt>{{ key }}</dt>
+    <dd>{{ value }}</dd>
+{% endfor %}
+</dl>
+
+{% endblock %} {# content #}

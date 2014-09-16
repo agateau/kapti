@@ -1,0 +1,63 @@
+<!doctype html>
+<html>
+<head>
+
+<title>{% block title %}{% endblock %} - Ubiplay</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<style>
+h1 {
+    font-size: 100%;
+    margin: 0;
+    padding: 0;
+}
+
+.subtitle {
+    font-size: 100%;
+    padding-bottom: 12px;
+}
+
+p {
+    margin: 0;
+    padding: 0;
+}
+
+.action {
+    float: right;
+}
+
+body {
+    margin: 4px;
+}
+
+.package {
+    padding-bottom: 6px;
+    margin-bottom: 6px;
+    border-bottom: 1px dotted #ccc;
+}
+
+.error {
+    margin-top: 12px;
+    background-color: #fcc;
+    border: 1px solid red;
+    line-height: 150%;
+    padding: 8px;
+}
+
+.information {
+    background-color: #cfc;
+    border: 1px solid green;
+    line-height: 150%;
+    margin-top: 12px;
+    padding: 8px;
+}
+</style>
+
+{% block js %}{% endblock %}
+</head>
+<body>
+
+{% block content %}{% endblock %}
+
+</body>
+</html>

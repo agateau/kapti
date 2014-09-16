@@ -1,8 +1,11 @@
 #!/usr/bin/env python
 # encoding: utf-8
+import os
 import re
 import sys
 from subprocess import *
+
+from jinja2 import Environment, FileSystemLoader
 
 from PyQt4.QtCore import *
 from PyQt4.QtGui import *
@@ -12,83 +15,6 @@ from PyKDE4.kdecore import *
 from PyKDE4.kdeui import *
 
 import pkgmanager
-
-HTML_HEADER=u"""
-<html>
-<head>
-<style>
-h1 {
-    font-size: 100%;
-    margin: 0;
-    padding: 0;
-}
-
-.subtitle {
-    font-size: 100%;
-    padding-bottom: 12px;
-}
-
-p {
-    margin: 0;
-    padding: 0;
-}
-
-.action {
-    float: right;
-}
-
-body {
-    margin: 4px;
-}
-
-.package {
-    padding-bottom: 6px;
-    margin-bottom: 6px;
-    border-bottom: 1px dotted #ccc;
-}
-
-.error {
-    margin-top: 12px;
-    background-color: #fcc;
-    border: 1px solid red;
-    line-height: 150%;
-    padding: 8px;
-}
-
-.information {
-    background-color: #cfc;
-    border: 1px solid green;
-    line-height: 150%;
-    margin-top: 12px;
-    padding: 8px;
-}
-
-</style>
-</head>
-<body>
-"""
-
-HTML_FOOTER=u"""
-</body>
-</html>
-"""
-
-HTML_WELCOME=u"""
-<div class='information'>
-<p>Welcome to Kapti, a simple tool to install or remove packages.</p>
-
-<p>To get started, enter a search term in the field above and press Enter.</p>
-</div>
-"""
-
-def generateHtmlForPackageListItem(name, description):
-    actionLink = createInstallRemoveLink(name)
-    return u"""<div class='package'>
-    <h1><a href='info:%(name)s'>%(name)s</a></h1>
-    <span class='action'>%(actionLink)s</a></span>
-    <p>%(description)s.</p>
-    <img class='thumbnail' src='http://screenshots.debian.net/thumbnail/%(name)s'>
-    </div>""" % locals()
 
 
 def htmlize(text):
@@ -113,24 +39,22 @@ def pkgHtmlize(text):
     return PKG_RX.sub(r"\1<a href='info:\2'>\2</a>", text)
 
 
-def createInstallRemoveLink(name):
-    if pkgmanager.isPackageInstalled(name):
-        url = "remove:" + name
-        text = i18n("Remove")
-    else:
-        url = "install:" + name
-        text = i18n("Install")
-    return "<a href='%s'>%s</a>" % (url, text)
-
-
 class Window(KMainWindow):
     def __init__(self):
         KMainWindow.__init__(self)
         self.history = [QUrl("welcome:/")]
         self.posInHistory = 0
+        self.createJinjaEnv()
         self.createActions()
         self.createUi()
         self.refresh()
+
+    def createJinjaEnv(self):
+        self.jinjaEnv = Environment()
+        dataDir = os.path.dirname(os.readlink(__file__))
+        tmplDir = os.path.join(dataDir, "templates")
+        print(tmplDir)
+        self.jinjaEnv.loader = FileSystemLoader(tmplDir)
 
     def createActions(self):
         self.backAction = KStandardAction.back(self.goBack, self)
@@ -217,26 +141,31 @@ class Window(KMainWindow):
         self.refresh()
 
     def url_welcome(self, arg):
-        self.packageView.setHtml(HTML_HEADER + HTML_WELCOME + HTML_FOOTER)
+        tmpl = self.jinjaEnv.get_template("welcome.html")
+        self.packageView.setHtml(tmpl.render())
 
     def url_search(self, arg):
         criterias = arg.split(" ")
         packages = pkgmanager.searchPackages(criterias)
-        if len(packages) > 0:
-            lst = []
-            for name, description in packages:
-                lst.append(generateHtmlForPackageListItem(name, description))
-            content = "".join(lst)
+        if packages:
+            errorMessage = ""
         else:
-            content = "<div class='error'>%s</div>" % i18n("Sorry, could not find any package matching \"%1\".", " ".join(criterias))
+            errorMessage = i18n("Sorry, could not find any package matching \"%1\".", " ".join(criterias))
 
-        html = HTML_HEADER + content + HTML_FOOTER
-        self.packageView.setHtml(html)
+        args = dict(
+            packages=packages,
+            errorMessage=errorMessage
+            )
+        tmpl = self.jinjaEnv.get_template("search.html")
+        self.packageView.setHtml(tmpl.render(args))
 
     def url_info(self, name):
         info = pkgmanager.getPackageInfo(name)
-        actionLink = createInstallRemoveLink(name)
-        lst = []
+        version = info["Version"]
+        homepage = htmlize(info["Homepage"]) if ("Homepage" in info) else None
+        subtitle, description = extractDescription(info)
+
+        relatedPackages = []
         for key in "Section", \
             "Depends", "Suggests", "Recommends", \
             "Conflicts", "Replaces", "Bugs":
@@ -246,24 +175,19 @@ class Window(KMainWindow):
                     value = pkgHtmlize(value)
                 else:
                     value = htmlize(value)
-                lst.append("<dt>%s</dt><dd>%s</dd>" % (key, value))
+                relatedPackages.append((key, value))
 
-        version = info["Version"]
-        if "Homepage" in info:
-            site = "<div class='site'>" + htmlize(info["Homepage"]) + "</div>"
-        else:
-            site = ""
-        subtitle, description = extractDescription(info)
-
-        html = HTML_HEADER \
-            + "<span class='action'>%s</span>" % actionLink \
-            + "<h1>%s %s</h1>" % (name, version) \
-            + "<img class='thumbnail' src='http://screenshots.debian.net/thumbnail/%s'>" % name \
-            + site \
-            + "<div class='subtitle'>" + htmlize(subtitle) + "</div>" \
-            + "<div class='description'>" + htmlize(description) + "</div>" \
-            + "<dl>" + "".join(lst) + "</dl>" + HTML_FOOTER
-        self.packageView.setHtml(html)
+        args = dict(
+            name=name,
+            version=version,
+            isInstalled=pkgmanager.isPackageInstalled(name),
+            subtitle=htmlize(subtitle),
+            description=htmlize(description),
+            relatedPackages=relatedPackages,
+            homepage=homepage,
+            )
+        tmpl = self.jinjaEnv.get_template("info.html")
+        self.packageView.setHtml(tmpl.render(args))
 
 
 def main():

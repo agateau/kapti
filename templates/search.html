@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+{% if errorMessage %}
+<div class='error'>{{ errorMessage }}</div>
+{% endif %}
+
+{% for package in packages %}
+    <div class='package'>
+        <h1><a href='info:{{ package.name }}'>{{ package.name }}</a></h1>
+        <span class='action'>
+            <a href='{{ "remove" if package.isInstalled else "install" }}:{{ package.name }}'>
+                {{ "Remove" if package.isInstalled else "Install" }}
+            </a>
+        </span>
+        <p>{{ package.description }}</p>
+        <img class='thumbnail' src='http://screenshots.debian.net/thumbnail/{{ package.name }}'>
+    </div>
+{% endfor %}
+
+{% endblock %} {# content #}
