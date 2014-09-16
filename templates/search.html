@@ -1,22 +1,27 @@
 {% extends "base.html" %}
+{% from 'install-remove-button.html' import installRemoveButton %}
 
 {% block content %}
+
+<div class='search-page'>
 
 {% if errorMessage %}
 <div class='error'>{{ errorMessage }}</div>
 {% endif %}
 
+<ul class='packages'>
 {% for package in packages %}
-    <div class='package'>
-        <h1><a href='info:{{ package.name }}'>{{ package.name }}</a></h1>
-        <span class='action'>
-            <a href='{{ "remove" if package.isInstalled else "install" }}:{{ package.name }}'>
-                {{ "Remove" if package.isInstalled else "Install" }}
-            </a>
-        </span>
-        <p>{{ package.description }}</p>
-        <img class='thumbnail' src='http://screenshots.debian.net/thumbnail/{{ package.name }}'>
-    </div>
+    <li>
+        <div class='action'>{{ installRemoveButton(package.name, package.isInstalled) }}</div>
+        <a class='package' href='info:{{ package.name }}'>
+            <img class='thumbnail' src='http://screenshots.debian.net/thumbnail/{{ package.name }}'>
+            <h1>{{ package.name }}</h1>
+            <p>{{ package.description }}</p>
+        </a>
+    </li>
 {% endfor %}
+</ul>
+
+</div> {# search-page #}
 
 {% endblock %} {# content #}

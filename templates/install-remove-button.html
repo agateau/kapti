@@ -1,0 +1,5 @@
+{% macro installRemoveButton(name, isInstalled=false) -%}
+    <a href='{{ "remove" if isInstalled else "install" }}:{{ name }}' class='button'>
+        {{ "Remove" if isInstalled else "Install" }}
+    </a>
+{%- endmacro %}

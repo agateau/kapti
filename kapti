@@ -190,6 +190,14 @@ class Window(KMainWindow):
         self.packageView.setHtml(tmpl.render(args))
 
 
+    def url_screenshot(self, name):
+        args = dict(
+            name=name,
+            )
+        tmpl = self.jinjaEnv.get_template("screenshot.html")
+        self.packageView.setHtml(tmpl.render(args))
+
+
 def main():
     aboutData = KAboutData(
         "kapti", # appName

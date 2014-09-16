@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% from 'install-remove-button.html' import installRemoveButton %}
+
+{% block content %}
+
+<div class='screenshot-page'>
+
+<h1>{{ name }}</h1>
+
+<img src='http://screenshots.debian.net/screenshot/{{ name }}'>
+
+</div> {# screenshot-page #}
+
+{% endblock %} {# content #}
