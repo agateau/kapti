@@ -87,6 +87,7 @@ def generateHtmlForPackageListItem(name, description):
     <h1><a href='info:%(name)s'>%(name)s</a></h1>
     <span class='action'>%(actionLink)s</a></span>
     <p>%(description)s.</p>
+    <img class='thumbnail' src='http://screenshots.debian.net/thumbnail/%(name)s'>
     </div>""" % locals()
 
 
@@ -257,6 +258,7 @@ class Window(KMainWindow):
         html = HTML_HEADER \
             + "<span class='action'>%s</span>" % actionLink \
             + "<h1>%s %s</h1>" % (name, version) \
+            + "<img class='thumbnail' src='http://screenshots.debian.net/thumbnail/%s'>" % name \
             + site \
             + "<div class='subtitle'>" + htmlize(subtitle) + "</div>" \
             + "<div class='description'>" + htmlize(description) + "</div>" \
