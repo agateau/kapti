@@ -6,6 +6,35 @@ from collections import namedtuple
 Package = namedtuple("Package", ["name", "description", "isInstalled"])
 
 
+class SortKeyCreator(object):
+    def __init__(self, searchTerms):
+        self.searchTerms = searchTerms
+
+    def __call__(self, pkg):
+        scores = [self._score(x, pkg.name) for x in self.searchTerms]
+        score = reduce(lambda x, y: x * y, scores)
+        return (score, pkg.name)
+
+    def _score(self, searchTerm, name):
+        # The lowest the better
+        # 1 == exact match
+        # 2 == matches start
+        # 3 == matches end
+        # 4 == name matches
+        # 5 == description matches
+
+        if searchTerm == name:
+            return 1
+        if name.startswith(searchTerm):
+            return 2
+        if name.endswith(searchTerm):
+            return 3
+        if searchTerm in name:
+            return 4
+        else:
+            return 5
+
+
 def searchPackages(searchTerms):
     out = Popen(["apt-cache", "search"] + searchTerms, stdout=PIPE).stdout
     lst = []
@@ -14,7 +43,7 @@ def searchPackages(searchTerms):
         name, description = line.split(" - ", 1)
         isInstalled = isPackageInstalled(name)
         lst.append(Package(name, description, isInstalled))
-    lst.sort(key=lambda x: x.name)
+    lst.sort(key=SortKeyCreator(searchTerms))
     return lst
 
 def installCommand(name):
