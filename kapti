@@ -35,7 +35,15 @@ def extractDescription(info):
 
 PKG_RX = re.compile(r"(^|, )([a-z0-9][-.+a-z0-9]*\w)")
 def pkgHtmlize(text):
-    return PKG_RX.sub(r"\1<a href='info:\2'>\2</a>", text)
+    def replace_fcn(match):
+        text = match.group(1)
+        pkg = match.group(2)
+        if pkgmanager.isPackageInstalled(pkg):
+            inst = u' ✓'
+        else:
+            inst = ''
+        return u"{text}<a href='info:{pkg}'>{pkg}</a>{inst}".format(text=text, pkg=pkg, inst=inst)
+    return PKG_RX.sub(replace_fcn, text)
 
 
 class Window(KMainWindow):
