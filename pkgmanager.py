@@ -1,9 +1,11 @@
-#!/usr/bin/env python
-from subprocess import *
-
 from collections import namedtuple
+from subprocess import check_output
 
 Package = namedtuple("Package", ["name", "description", "isInstalled"])
+
+
+def check_output_lines(cmd):
+    return check_output(cmd).strip().split('\n')
 
 
 class SortKeyCreator(object):
@@ -36,9 +38,8 @@ class SortKeyCreator(object):
 
 
 def searchPackages(searchTerms):
-    out = Popen(["apt-cache", "search"] + searchTerms, stdout=PIPE).stdout
     lst = []
-    for line in out.readlines():
+    for line in check_output_lines(["apt-cache", "search"] + searchTerms):
         line = unicode(line.strip(), "utf-8")
         name, description = line.split(" - ", 1)
         isInstalled = isPackageInstalled(name)
@@ -55,9 +56,8 @@ def removeCommand(name):
 _installedPackages = None
 def updateInstalledPackageList():
     global _installedPackages
-    out = Popen(["dpkg", "--get-selections"], stdout=PIPE).stdout
     _installedPackages = []
-    for line in out.readlines():
+    for line in check_output_lines(["dpkg", "--get-selections"]):
         line = line.strip()
         if not line.endswith("deinstall"):
             name = line.split("\t", 1)[0]
@@ -70,10 +70,9 @@ def isPackageInstalled(name):
     return name in _installedPackages
 
 def getPackageInfo(name):
-    out = Popen(["apt-cache", "show", name], stdout=PIPE).stdout
     info = {}
     lastKey = None
-    for line in out.readlines():
+    for line in check_output_lines(["apt-cache", "show", name]):
         line = unicode(line, "utf-8")
         if line[0] == " ":
             line = line.strip()
