@@ -33,7 +33,9 @@ def extractDescription(info):
     return subtitle, description
 
 
-PKG_RX = re.compile(r"(^|, )([a-z0-9][-.+a-z0-9]*\w)")
+# Match blocks which are either at the beginning of the line, or after a ',' or
+# a '|'
+PKG_RX = re.compile(r"(^|[,|] )([a-z0-9][-.+a-z0-9]*\w)")
 def pkgHtmlize(text):
     def replace_fcn(match):
         text = match.group(1)
