@@ -65,6 +65,10 @@ def updateInstalledPackageList():
         line = line.strip()
         if not line.endswith("deinstall"):
             name = line.split("\t", 1)[0]
+            # Strip architecture, if present
+            colonIdx = name.find(":")
+            if colonIdx != -1:
+                name = name[:colonIdx]
             _installedPackages.append(name)
 
 def isPackageInstalled(name):
