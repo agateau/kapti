@@ -83,7 +83,7 @@ def getPackageInfo(name):
     for line in check_output_lines(["apt-cache", "show", name]):
         line = unicode(line, "utf-8")
         if line[0] == " ":
-            line = line.strip()
+            line = line[1:].rstrip()
             if line == ".":
                 line = ""
             info[lastKey] = info[lastKey] + '\n' + line
