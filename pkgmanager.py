@@ -47,10 +47,10 @@ def searchPackages(searchTerms):
     return lst
 
 def installCommand(name):
-    return "apt-get install %s" % name
+    return ["qapt-batch", "--install", name]
 
 def removeCommand(name):
-    return "apt-get remove %s" % name
+    return ["qapt-batch", "--uninstall", name]
 
 _installedPackages = None
 def updateInstalledPackageList():

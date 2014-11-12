@@ -127,17 +127,11 @@ class Window(KMainWindow):
             QDesktopServices.openUrl(url)
 
     def install(self, name):
-        comment = i18n("Kapti needs your password to install %1.", name)
-        self.installRemove(comment, pkgmanager.installCommand(name))
+        call(pkgmanager.installCommand(name))
+        self.refresh()
 
     def remove(self, name):
-        comment = i18n("Kapti needs your password to remove %1.", name)
-        self.installRemove(comment, pkgmanager.removeCommand(name))
-
-    def installRemove(self, comment, cmd):
-        cmd = "xterm -e '%s'" % cmd
-        call(["kdesudo", "-d", "--comment", comment, "-c", cmd])
-        pkgmanager.updateInstalledPackageList()
+        call(pkgmanager.removeCommand(name))
         self.refresh()
 
     def url_welcome(self, arg):
