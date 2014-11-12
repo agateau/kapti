@@ -3,7 +3,6 @@
 import os
 import re
 import sys
-from subprocess import call
 
 from jinja2 import Environment, FileSystemLoader
 
@@ -127,12 +126,10 @@ class Window(KMainWindow):
             QDesktopServices.openUrl(url)
 
     def install(self, name):
-        call(pkgmanager.installCommand(name))
-        self.refresh()
+        pkgmanager.install(name, self.refresh)
 
     def remove(self, name):
-        call(pkgmanager.removeCommand(name))
-        self.refresh()
+        pkgmanager.remove(name, self.refresh)
 
     def url_welcome(self, arg):
         tmpl = self.jinjaEnv.get_template("welcome.html")

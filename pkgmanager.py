@@ -1,5 +1,5 @@
 from collections import namedtuple
-from subprocess import check_output
+from subprocess import check_output, call
 
 Package = namedtuple("Package", ["name", "description", "isInstalled"])
 
@@ -47,11 +47,15 @@ def searchPackages(searchTerms):
     lst.sort(key=SortKeyCreator(searchTerms))
     return lst
 
-def installCommand(name):
-    return ["qapt-batch", "--install", name]
+def install(name, cb):
+    call(["qapt-batch", "--install", name])
+    updateInstalledPackageList()
+    cb()
 
-def removeCommand(name):
-    return ["qapt-batch", "--uninstall", name]
+def remove(name, cb):
+    call(["qapt-batch", "--uninstall", name])
+    updateInstalledPackageList()
+    cb()
 
 _installedPackages = None
 def updateInstalledPackageList():
