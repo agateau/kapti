@@ -5,7 +5,10 @@ Package = namedtuple("Package", ["name", "description", "isInstalled"])
 
 
 def check_output_lines(cmd):
-    return check_output(cmd).strip().split('\n')
+    out = check_output(cmd).strip()
+    if out == '':
+        return []
+    return out.split('\n')
 
 
 class SortKeyCreator(object):
