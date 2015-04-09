@@ -1,5 +1,7 @@
+import os
+
 from collections import namedtuple
-from subprocess import check_output
+from subprocess import check_output, call
 
 import apt
 
@@ -56,21 +58,22 @@ def searchPackages(searchTerms):
     return lst
 
 
-def _alterPackage(name, fcn, cb):
-    cache = _getCache()
-    pkg = cache[name]
-    fcn(pkg)
-    cache.commit()
-    cache.open()
+def run_pkgcmd(args, cb):
+    pkgdir = os.path.dirname(__file__)
+    pkgcmd = os.path.join(pkgdir, 'pkgcmd.py')
+    command = [pkgcmd] + args
+    call(['kdesudo', '-c', ' '.join(command)])
+
+    _getCache().open()
     cb()
 
 
 def install(name, cb):
-    _alterPackage(name, apt.Package.mark_install, cb)
+    run_pkgcmd(['install', name], cb)
 
 
 def remove(name, cb):
-    _alterPackage(name, apt.Package.mark_delete, cb)
+    run_pkgcmd(['remove', name], cb)
 
 
 def _getCache():
