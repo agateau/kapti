@@ -1,6 +1,6 @@
 import os
-
 from collections import namedtuple
+from functools import reduce
 from subprocess import check_output, call
 
 import apt
@@ -12,7 +12,7 @@ _cache = None
 
 
 def check_output_lines(cmd):
-    out = check_output(cmd).strip()
+    out = check_output(cmd).decode().strip()
     if out == '':
         return []
     return out.split('\n')
@@ -50,7 +50,7 @@ class SortKeyCreator(object):
 def searchPackages(searchTerms):
     lst = []
     for line in check_output_lines(["apt-cache", "search"] + searchTerms):
-        line = unicode(line.strip(), "utf-8")
+        line = line.strip()
         name, description = line.split(" - ", 1)
         isInstalled = isPackageInstalled(name)
         lst.append(Package(name, description, isInstalled))

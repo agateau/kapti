@@ -1,5 +1,4 @@
-#!/usr/bin/env python
-# encoding: utf-8
+#!/usr/bin/env python3
 import os
 import re
 import sys
@@ -18,7 +17,7 @@ import pkgmanager
 
 def htmlize(text):
     text = text.replace("\n", "<br>")
-    return unicode(KStringHandler.tagUrls(text))
+    return KStringHandler.tagUrls(text)
 
 
 def extractDescription(info):
@@ -110,8 +109,8 @@ class Window(KMainWindow):
         self.openUrl(self.history[self.posInHistory], addToHistory=False)
 
     def openUrl(self, url, addToHistory=True):
-        action = unicode(url.scheme())
-        path = unicode(url.path())
+        action = url.scheme()
+        path = url.path()
 
         if action == "install":
             self.install(path)
@@ -207,7 +206,7 @@ def main():
         "1.0")
     aboutData.setLicense(KAboutData.License_GPL_V3)
     aboutData.setShortDescription(ki18n("Simple frontend to install and remove packages"))
-    aboutData.setCopyrightStatement(ki18n("(c) 2010 Aurélien Gâteau"))
+    aboutData.setCopyrightStatement(ki18n("(c) 2010-2015 Aurélien Gâteau".encode("utf-8")))
     aboutData.setProgramIconName("application-x-deb")
 
     KCmdLineArgs.init(sys.argv, aboutData)
