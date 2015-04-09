@@ -1,7 +1,12 @@
 from collections import namedtuple
-from subprocess import check_output, call
+from subprocess import check_output
+
+import apt
 
 Package = namedtuple("Package", ["name", "description", "isInstalled"])
+
+
+_cache = None
 
 
 def check_output_lines(cmd):
@@ -50,50 +55,63 @@ def searchPackages(searchTerms):
     lst.sort(key=SortKeyCreator(searchTerms))
     return lst
 
-def install(name, cb):
-    call(["qapt-batch", "--install", name])
-    updateInstalledPackageList()
+
+def _alterPackage(name, fcn, cb):
+    cache = _getCache()
+    pkg = cache[name]
+    fcn(pkg)
+    cache.commit()
+    cache.open()
     cb()
+
+
+def install(name, cb):
+    _alterPackage(name, apt.Package.mark_install, cb)
+
 
 def remove(name, cb):
-    call(["qapt-batch", "--uninstall", name])
-    updateInstalledPackageList()
-    cb()
+    _alterPackage(name, apt.Package.mark_delete, cb)
 
-_installedPackages = None
-def updateInstalledPackageList():
-    global _installedPackages
-    _installedPackages = []
-    for line in check_output_lines(["dpkg", "--get-selections"]):
-        line = line.strip()
-        if not line.endswith("deinstall"):
-            name = line.split("\t", 1)[0]
-            # Strip architecture, if present
-            colonIdx = name.find(":")
-            if colonIdx != -1:
-                name = name[:colonIdx]
-            _installedPackages.append(name)
+
+def _getCache():
+    global _cache
+    if _cache is None:
+        _cache = apt.Cache()
+    return _cache
+
 
 def isPackageInstalled(name):
-    global _installedPackages
-    if _installedPackages is None:
-        updateInstalledPackageList()
-    return name in _installedPackages
+    cache = _getCache()
+    return name in cache and cache[name].is_installed
+
+
+def _formatBaseDependency(dependency):
+    if dependency.relation:
+        return dependency.name + ' ' + dependency.relation + ' ' + dependency.version
+    else:
+        return dependency.name
+
+
+def _formatDependencyList(dependencyList):
+    lst = []
+    for dependency in dependencyList:
+        name = ' | '.join([_formatBaseDependency(x) for x in dependency])
+        lst.append(name)
+    return ', '.join(lst)
+
 
 def getPackageInfo(name):
-    info = {}
-    lastKey = None
-    for line in check_output_lines(["apt-cache", "show", name]):
-        line = unicode(line, "utf-8")
-        if line[0] == " ":
-            line = line[1:].rstrip()
-            if line == ".":
-                line = ""
-            info[lastKey] = info[lastKey] + '\n' + line
-        elif ":" in line:
-            key, value = [x.strip() for x in line.split(":", 1)]
-            info[key] = value
-            lastKey = key
+    pkg = _getCache()[name]
+    version = pkg.versions[0]
+    info = dict(
+        Section=pkg.section,
+        Homepage=version.homepage,
+        Recommends=_formatDependencyList(version.recommends),
+        Description=version.description,
+        Suggests=_formatDependencyList(version.suggests),
+        Depends=_formatDependencyList(version.dependencies),
+        Version=version.version,
+    )
     return info
 
 # vi: ts=4 sw=4 et
