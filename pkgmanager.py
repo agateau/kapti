@@ -1,7 +1,8 @@
+import json
 import os
 from collections import namedtuple
 from functools import reduce
-from subprocess import check_output, call
+from subprocess import check_output, Popen, PIPE
 
 import apt
 
@@ -63,7 +64,15 @@ def runPkgcmd(args, cb):
     pkgcmd = os.path.join(pkgdir, 'pkgcmd.py')
     command = [pkgcmd] + args
 
-    call(['kdesudo', '-c', ' '.join(command)])
+    proc = Popen(['kdesudo', '-c', ' '.join(command)], universal_newlines=True,
+                 bufsize=1, stdout=PIPE)
+
+    while proc.returncode is None:
+        line = proc.stdout.readline()
+        if line.startswith('JSON '):
+            dct = json.loads(line[5:])
+            print(dct)
+        proc.poll()
 
     _getCache().open()
     cb()
