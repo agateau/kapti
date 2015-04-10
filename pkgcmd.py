@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import json
 import os
+import socket
 import sys
 
 from argparse import ArgumentParser
@@ -8,10 +9,18 @@ from argparse import ArgumentParser
 import apt
 
 
+_client = None
+
+
 def json_dump(step, **kwargs):
     dct = dict(step=step)
     dct.update(kwargs)
-    print('JSON ' + json.dumps(dct))
+    text = 'JSON ' + json.dumps(dct) + '\n'
+    if _client:
+        _client.send(text.encode())
+    else:
+        sys.stdout.write(text)
+        sys.stdout.flush()
 
 
 class JSONAcquireProgress(apt.progress.base.AcquireProgress):
@@ -47,21 +56,34 @@ class JSONInstallProgress(apt.progress.base.InstallProgress):
 
 
 def main():
+    global _client
+
     parser = ArgumentParser(description='Kapti root helper')
+    parser.add_argument('--socket', help='Where to write progress information')
     parser.add_argument('action', help='Either install or remove')
     parser.add_argument('package', help='Name of the package')
     args = parser.parse_args()
 
-    cache = apt.Cache()
-    pkg = cache[args.package]
-    if args.action == 'install':
-        pkg.mark_install()
-    elif args.action == 'remove':
-        pkg.mark_delete()
-    else:
-        return 1
-    pkg.commit(fprogress=JSONAcquireProgress(), iprogress=JSONInstallProgress())
-    return 0
+    if args.socket:
+        _client = socket.socket(socket.AF_UNIX, socket.SOCK_DGRAM)
+        _client.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        _client.connect(args.socket)
+
+    try:
+        json_dump('starting')
+        cache = apt.Cache()
+        pkg = cache[args.package]
+        if args.action == 'install':
+            pkg.mark_install()
+        elif args.action == 'remove':
+            pkg.mark_delete()
+        else:
+            return 1
+        pkg.commit(fprogress=JSONAcquireProgress(), iprogress=JSONInstallProgress())
+        return 0
+    finally:
+        if _client:
+            _client.close()
 
 
 if __name__ == '__main__':
