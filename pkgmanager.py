@@ -58,10 +58,11 @@ def searchPackages(searchTerms):
     return lst
 
 
-def run_pkgcmd(args, cb):
+def runPkgcmd(args, cb):
     pkgdir = os.path.dirname(__file__)
     pkgcmd = os.path.join(pkgdir, 'pkgcmd.py')
     command = [pkgcmd] + args
+
     call(['kdesudo', '-c', ' '.join(command)])
 
     _getCache().open()
@@ -69,11 +70,11 @@ def run_pkgcmd(args, cb):
 
 
 def install(name, cb):
-    run_pkgcmd(['install', name], cb)
+    runPkgcmd(['install', name], cb)
 
 
 def remove(name, cb):
-    run_pkgcmd(['remove', name], cb)
+    runPkgcmd(['remove', name], cb)
 
 
 def _getCache():
