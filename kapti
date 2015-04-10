@@ -222,7 +222,7 @@ def main():
     if args.count() > 0:
         lst = []
         for pos in range(args.count()):
-            lst.append(unicode(args.arg(pos)))
+            lst.append(args.arg(pos))
         window.searchLineEdit.setText(" ".join(lst))
         QTimer.singleShot(0, window.startSearch)
 
