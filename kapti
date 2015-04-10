@@ -14,6 +14,7 @@ from PyKDE4.kdeui import *
 
 import pkgmanager
 
+from progressview import ProgressView
 
 def htmlize(text):
     text = text.replace("\n", "<br>")
@@ -78,7 +79,16 @@ class Window(KMainWindow):
 
         self.packageView = QWebView(self)
         self.packageView.page().setLinkDelegationPolicy(QWebPage.DelegateAllLinks)
-        self.setCentralWidget(self.packageView)
+
+        self.progressView = ProgressView()
+        self.progressView.hide()
+
+        central = QWidget()
+        layout = QVBoxLayout(central)
+        layout.setMargin(0)
+        layout.addWidget(self.packageView)
+        layout.addWidget(self.progressView)
+        self.setCentralWidget(central)
 
         QObject.connect(self.searchLineEdit, SIGNAL("returnPressed()"), self.startSearch)
 
@@ -135,10 +145,16 @@ class Window(KMainWindow):
             QDesktopServices.openUrl(url)
 
     def install(self, name):
-        pkgmanager.install(name, self.refresh)
+        runner = pkgmanager.install(name)
+        runner.setParent(self)
+        self.progressView.setRunner(runner)
+        runner.done.connect(self.refresh)
 
     def remove(self, name):
-        pkgmanager.remove(name, self.refresh)
+        runner = pkgmanager.remove(name)
+        runner.setParent(self)
+        self.progressView.setRunner(runner)
+        runner.done.connect(self.refresh)
 
     def url_welcome(self, arg):
         tmpl = self.jinjaEnv.get_template("welcome.html")
