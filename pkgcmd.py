@@ -34,17 +34,21 @@ class JSONAcquireProgress(apt.progress.base.AcquireProgress):
 
     def fetch(self, item):
         super(JSONAcquireProgress, self).fetch(item=item)
-        json_dump('acquire.fetch', fetched_bytes=self.fetched_bytes, total_bytes=self.total_bytes)
+        json_dump('acquire', fetched_bytes=self.fetched_bytes, total_bytes=self.total_bytes)
+
+    def pulse(self, owner):
+        json_dump('acquire', fetched_bytes=self.fetched_bytes, total_bytes=self.total_bytes)
+        return super(JSONAcquireProgress, self).pulse(owner)
 
 
 class JSONInstallProgress(apt.progress.base.InstallProgress):
+    def __init__(self, action):
+        super(JSONInstallProgress, self).__init__()
+        self.action = action
+
     def status_change(self, pkg, percent, status):
         super(JSONInstallProgress, self).status_change(pkg, percent, status)
-        json_dump('install.progress', percent=percent)
-
-    def finish_update(self):
-        super(JSONInstallProgress, self).finish_update()
-        json_dump('install.finish_update')
+        json_dump(self.action, percent=percent)
 
     def fork(self):
         pid = os.fork()
@@ -79,7 +83,8 @@ def main():
             pkg.mark_delete()
         else:
             return 1
-        pkg.commit(fprogress=JSONAcquireProgress(), iprogress=JSONInstallProgress())
+        pkg.commit(fprogress=JSONAcquireProgress(),
+                   iprogress=JSONInstallProgress(args.action))
         return 0
     finally:
         if _client:
