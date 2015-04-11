@@ -157,6 +157,7 @@ def getPackageInfo(name):
         Section=pkg.section,
         Homepage=version.homepage,
         Recommends=_formatDependencyList(version.recommends),
+        Summary=version.summary,
         Description=version.description,
         Suggests=_formatDependencyList(version.suggests),
         Depends=_formatDependencyList(version.dependencies),

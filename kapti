@@ -21,18 +21,6 @@ def htmlize(text):
     return KStringHandler.tagUrls(text)
 
 
-def extractDescription(info):
-    subtitle = ""
-    description = ""
-
-    for field in info.keys():
-        if field == "Description" or field.startswith("Description-"):
-            subtitle, description = info[field].split("\n", 1)
-            break
-
-    return subtitle, description
-
-
 # Match blocks which are either at the beginning of the line, or after a ',' or
 # a '|'
 PKG_RX = re.compile(r"(^|[,|] )([a-z0-9][-.+a-z0-9]*\w)")
@@ -179,7 +167,8 @@ class Window(KMainWindow):
         info = pkgmanager.getPackageInfo(name)
         version = info["Version"]
         homepage = htmlize(info["Homepage"]) if ("Homepage" in info) else None
-        subtitle, description = extractDescription(info)
+        subtitle = htmlize(info["Summary"])
+        description = htmlize(info["Description"])
 
         relatedPackages = []
         for key in "Section", \
@@ -197,8 +186,8 @@ class Window(KMainWindow):
             name=name,
             version=version,
             isInstalled=pkgmanager.isPackageInstalled(name),
-            subtitle=htmlize(subtitle),
-            description=htmlize(description),
+            subtitle=subtitle,
+            description=description,
             relatedPackages=relatedPackages,
             homepage=homepage,
             )
