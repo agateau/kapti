@@ -1,5 +1,5 @@
 from PyQt4.QtGui import QWidget, QProgressBar, QVBoxLayout
-from PyKDE4.kdecore import i18n
+from PyKDE4.kdecore import i18n, KGlobal
 
 
 class ProgressView(QWidget):
@@ -27,6 +27,12 @@ class ProgressView(QWidget):
             else:
                 self._progressBar.setFormat(i18n('Removing... %p%'))
         elif step == 'acquire':
-            self._progressBar.setMaximum(dct['total_bytes'])
-            self._progressBar.setValue(dct['fetched_bytes'])
-            self._progressBar.setFormat(i18n('Downloading... %v / %m'))
+            fetched = dct['fetched_bytes']
+            total = dct['total_bytes']
+            self._progressBar.setMaximum(total)
+            self._progressBar.setValue(fetched)
+            locale = KGlobal.locale()
+            self._progressBar.setFormat(i18n('Downloading... %1 / %2',
+                                             locale.formatByteSize(fetched),
+                                             locale.formatByteSize(total)
+                                             ))
