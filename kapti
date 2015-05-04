@@ -1,9 +1,7 @@
-#!/usr/bin/env python
-# encoding: utf-8
+#!/usr/bin/env python3
 import os
 import re
 import sys
-from subprocess import *
 
 from jinja2 import Environment, FileSystemLoader
 
@@ -16,27 +14,26 @@ from PyKDE4.kdeui import *
 
 import pkgmanager
 
+from progressview import ProgressView
 
 def htmlize(text):
     text = text.replace("\n", "<br>")
-    return unicode(KStringHandler.tagUrls(text))
+    return KStringHandler.tagUrls(text)
 
 
-def extractDescription(info):
-    subtitle = ""
-    description = ""
-
-    for field in info.keys():
-        if field == "Description" or field.startswith("Description-"):
-            subtitle, description = info[field].split("\n", 1)
-            break
-
-    return subtitle, description
-
-
-PKG_RX = re.compile(r"(^|, )([a-z0-9][-.+a-z0-9]*\w)")
+# Match blocks which are either at the beginning of the line, or after a ',' or
+# a '|'
+PKG_RX = re.compile(r"(^|[,|] )([a-z0-9][-.+a-z0-9]*\w)")
 def pkgHtmlize(text):
-    return PKG_RX.sub(r"\1<a href='info:\2'>\2</a>", text)
+    def replace_fcn(match):
+        text = match.group(1)
+        pkg = match.group(2)
+        if pkgmanager.isPackageInstalled(pkg):
+            inst = u' ✓'
+        else:
+            inst = ''
+        return u"{text}<a href='info:{pkg}'>{pkg}</a>{inst}".format(text=text, pkg=pkg, inst=inst)
+    return PKG_RX.sub(replace_fcn, text)
 
 
 class Window(KMainWindow):
@@ -70,7 +67,16 @@ class Window(KMainWindow):
 
         self.packageView = QWebView(self)
         self.packageView.page().setLinkDelegationPolicy(QWebPage.DelegateAllLinks)
-        self.setCentralWidget(self.packageView)
+
+        self.progressView = ProgressView()
+        self.progressView.hide()
+
+        central = QWidget()
+        layout = QVBoxLayout(central)
+        layout.setMargin(0)
+        layout.addWidget(self.packageView)
+        layout.addWidget(self.progressView)
+        self.setCentralWidget(central)
 
         QObject.connect(self.searchLineEdit, SIGNAL("returnPressed()"), self.startSearch)
 
@@ -101,8 +107,8 @@ class Window(KMainWindow):
         self.openUrl(self.history[self.posInHistory], addToHistory=False)
 
     def openUrl(self, url, addToHistory=True):
-        action = unicode(url.scheme())
-        path = unicode(url.path())
+        action = url.scheme()
+        path = url.path()
 
         if action == "install":
             self.install(path)
@@ -127,18 +133,16 @@ class Window(KMainWindow):
             QDesktopServices.openUrl(url)
 
     def install(self, name):
-        comment = i18n("Kapti needs your password to install %1.", name)
-        self.installRemove(comment, pkgmanager.installCommand(name))
+        runner = pkgmanager.install(name)
+        runner.setParent(self)
+        self.progressView.setRunner(runner)
+        runner.done.connect(self.refresh)
 
     def remove(self, name):
-        comment = i18n("Kapti needs your password to remove %1.", name)
-        self.installRemove(comment, pkgmanager.removeCommand(name))
-
-    def installRemove(self, comment, cmd):
-        cmd = "xterm -e '%s'" % cmd
-        call(["kdesudo", "-d", "--comment", comment, "-c", cmd])
-        pkgmanager.updateInstalledPackageList()
-        self.refresh()
+        runner = pkgmanager.remove(name)
+        runner.setParent(self)
+        self.progressView.setRunner(runner)
+        runner.done.connect(self.refresh)
 
     def url_welcome(self, arg):
         tmpl = self.jinjaEnv.get_template("welcome.html")
@@ -163,7 +167,8 @@ class Window(KMainWindow):
         info = pkgmanager.getPackageInfo(name)
         version = info["Version"]
         homepage = htmlize(info["Homepage"]) if ("Homepage" in info) else None
-        subtitle, description = extractDescription(info)
+        subtitle = htmlize(info["Summary"])
+        description = htmlize(info["Description"])
 
         relatedPackages = []
         for key in "Section", \
@@ -181,8 +186,8 @@ class Window(KMainWindow):
             name=name,
             version=version,
             isInstalled=pkgmanager.isPackageInstalled(name),
-            subtitle=htmlize(subtitle),
-            description=htmlize(description),
+            subtitle=subtitle,
+            description=description,
             relatedPackages=relatedPackages,
             homepage=homepage,
             )
@@ -206,7 +211,7 @@ def main():
         "1.0")
     aboutData.setLicense(KAboutData.License_GPL_V3)
     aboutData.setShortDescription(ki18n("Simple frontend to install and remove packages"))
-    aboutData.setCopyrightStatement(ki18n("(c) 2010 Aurélien Gâteau"))
+    aboutData.setCopyrightStatement(ki18n("(c) 2010-2015 Aurélien Gâteau".encode("utf-8")))
     aboutData.setProgramIconName("application-x-deb")
 
     KCmdLineArgs.init(sys.argv, aboutData)
@@ -222,7 +227,7 @@ def main():
     if args.count() > 0:
         lst = []
         for pos in range(args.count()):
-            lst.append(unicode(args.arg(pos)))
+            lst.append(args.arg(pos))
         window.searchLineEdit.setText(" ".join(lst))
         QTimer.singleShot(0, window.startSearch)
 

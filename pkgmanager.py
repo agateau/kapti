@@ -1,9 +1,27 @@
-#!/usr/bin/env python
-from subprocess import *
-
+import io
+import json
+import os
+import socket
 from collections import namedtuple
+from functools import reduce
+from subprocess import check_output, Popen
+from tempfile import NamedTemporaryFile
+
+import apt
+
+from PyQt4.QtCore import QObject, pyqtSignal, QTimer
 
 Package = namedtuple("Package", ["name", "description", "isInstalled"])
+
+
+_cache = None
+
+
+def check_output_lines(cmd):
+    out = check_output(cmd).decode().strip()
+    if out == '':
+        return []
+    return out.split('\n')
 
 
 class SortKeyCreator(object):
@@ -36,54 +54,115 @@ class SortKeyCreator(object):
 
 
 def searchPackages(searchTerms):
-    out = Popen(["apt-cache", "search"] + searchTerms, stdout=PIPE).stdout
     lst = []
-    for line in out.readlines():
-        line = unicode(line.strip(), "utf-8")
+    for line in check_output_lines(["apt-cache", "search"] + searchTerms):
+        line = line.strip()
         name, description = line.split(" - ", 1)
         isInstalled = isPackageInstalled(name)
         lst.append(Package(name, description, isInstalled))
     lst.sort(key=SortKeyCreator(searchTerms))
     return lst
 
-def installCommand(name):
-    return "apt-get install %s" % name
 
-def removeCommand(name):
-    return "apt-get remove %s" % name
+class PkgcmdRunner(QObject):
+    done = pyqtSignal(bool)
+    progress = pyqtSignal(dict)
 
-_installedPackages = None
-def updateInstalledPackageList():
-    global _installedPackages
-    out = Popen(["dpkg", "--get-selections"], stdout=PIPE).stdout
-    _installedPackages = []
-    for line in out.readlines():
-        line = line.strip()
-        if not line.endswith("deinstall"):
-            name = line.split("\t", 1)[0]
-            _installedPackages.append(name)
+    def __init__(self, args):
+        super(PkgcmdRunner, self).__init__()
+        self._buffer = ''
+
+        self._socketPath = NamedTemporaryFile(prefix='kapti-', delete=False).name
+        self._server = socket.socket(socket.AF_UNIX, socket.SOCK_DGRAM)
+        self._server.setblocking(False)
+        self._server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        os.unlink(self._socketPath)
+        self._server.bind(self._socketPath)
+
+        pkgdir = os.path.dirname(__file__)
+        pkgcmd = os.path.join(pkgdir, 'pkgcmd.py')
+        command = [pkgcmd, '--socket', self._socketPath] + args
+
+        self._proc = Popen(['kdesudo', '-c', ' '.join(command)])
+
+        self._scheduleUpdate()
+
+    def _update(self):
+        self._proc.poll()
+        if self._proc.returncode is not None:
+            _getCache().open()
+            self._server.close()
+            os.unlink(self._socketPath)
+            self.done.emit(self._proc.returncode == 0)
+            self.deleteLater()
+            return
+
+        self._scheduleUpdate()
+
+        try:
+            chunk = self._server.recv(80)
+        except io.BlockingIOError:
+            return
+        data = self._buffer + chunk.decode()
+        lines = data.split('\n')
+        self._buffer = lines.pop()
+        for line in lines:
+            if line.startswith('JSON '):
+                dct = json.loads(line[5:])
+                self.progress.emit(dct)
+
+    def _scheduleUpdate(self):
+        QTimer.singleShot(0, self._update)
+
+
+def install(name):
+    return PkgcmdRunner(['install', name])
+
+
+def remove(name):
+    return PkgcmdRunner(['remove', name])
+
+
+def _getCache():
+    global _cache
+    if _cache is None:
+        _cache = apt.Cache()
+    return _cache
+
 
 def isPackageInstalled(name):
-    global _installedPackages
-    if _installedPackages is None:
-        updateInstalledPackageList()
-    return name in _installedPackages
+    cache = _getCache()
+    return name in cache and cache[name].is_installed
+
+
+def _formatBaseDependency(dependency):
+    if dependency.relation:
+        return dependency.name + ' ' + dependency.relation + ' ' + dependency.version
+    else:
+        return dependency.name
+
+
+def _formatDependencyList(dependencyList):
+    lst = []
+    for dependency in dependencyList:
+        name = ' | '.join([_formatBaseDependency(x) for x in dependency])
+        lst.append(name)
+    return ', '.join(lst)
+
 
 def getPackageInfo(name):
-    out = Popen(["apt-cache", "show", name], stdout=PIPE).stdout
-    info = {}
-    lastKey = None
-    for line in out.readlines():
-        line = unicode(line, "utf-8")
-        if line[0] == " ":
-            line = line.strip()
-            if line == ".":
-                line = ""
-            info[lastKey] = info[lastKey] + '\n' + line
-        elif ":" in line:
-            key, value = [x.strip() for x in line.split(":", 1)]
-            info[key] = value
-            lastKey = key
+    pkg = _getCache()[name]
+    version = pkg.versions[0]
+    info = dict(
+        Section=pkg.section,
+        Homepage=version.homepage,
+        Recommends=_formatDependencyList(version.recommends),
+        Summary=version.summary,
+        Description=version.description,
+        Suggests=_formatDependencyList(version.suggests),
+        Depends=_formatDependencyList(version.dependencies),
+        Version=version.version,
+    )
     return info
 
 # vi: ts=4 sw=4 et
