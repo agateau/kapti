@@ -42,7 +42,7 @@ class Window(QMainWindow):
 
     def createJinjaEnv(self):
         self.jinjaEnv = Environment()
-        dataDir = os.path.dirname(os.readlink(__file__))
+        dataDir = os.path.dirname(os.path.realpath(__file__))
         tmplDir = os.path.join(dataDir, "templates")
         print(tmplDir)
         self.jinjaEnv.loader = FileSystemLoader(tmplDir)
