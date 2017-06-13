@@ -9,7 +9,7 @@ from tempfile import NamedTemporaryFile
 
 import apt
 
-from PyQt4.QtCore import QObject, pyqtSignal, QTimer
+from PyQt5.QtCore import QObject, pyqtSignal, QTimer
 
 Package = namedtuple("Package", ["name", "description", "isInstalled"])
 

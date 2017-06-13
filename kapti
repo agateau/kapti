@@ -5,20 +5,14 @@ import sys
 
 from jinja2 import Environment, FileSystemLoader
 
-from PyQt4.QtCore import *
-from PyQt4.QtGui import *
-from PyQt4.QtWebKit import *
-
-from PyKDE4.kdecore import *
-from PyKDE4.kdeui import *
+from PyQt5.QtCore import QUrl, QTimer
+from PyQt5.QtGui import QIcon
+from PyQt5.QtWidgets import QMainWindow, QApplication, QAction, QLineEdit, QWidget, QVBoxLayout
+from PyQt5.QtWebKitWidgets import QWebView, QWebPage
 
 import pkgmanager
 
 from progressview import ProgressView
-
-def htmlize(text):
-    text = text.replace("\n", "<br>")
-    return KStringHandler.tagUrls(text)
 
 
 # Match blocks which are either at the beginning of the line, or after a ',' or
@@ -36,9 +30,9 @@ def pkgHtmlize(text):
     return PKG_RX.sub(replace_fcn, text)
 
 
-class Window(KMainWindow):
+class Window(QMainWindow):
     def __init__(self):
-        KMainWindow.__init__(self)
+        super().__init__()
         self.history = [QUrl("welcome:/")]
         self.posInHistory = 0
         self.createJinjaEnv()
@@ -54,16 +48,19 @@ class Window(KMainWindow):
         self.jinjaEnv.loader = FileSystemLoader(tmplDir)
 
     def createActions(self):
-        self.backAction = KStandardAction.back(self.goBack, self)
-        self.forwardAction = KStandardAction.forward(self.goForward, self)
+        self.backAction = QAction(QIcon.fromTheme("go-back"), self.tr("Back"), self)
+        self.backAction.triggered.connect(self.goBack)
+        self.forwardAction = QAction(QIcon.fromTheme("go-forward"), self.tr("Forward"), self)
+        self.forwardAction.triggered.connect(self.goForward)
 
     def createUi(self):
-        self.toolBar().addAction(self.backAction)
-        self.toolBar().addAction(self.forwardAction)
+        self.toolBar = self.addToolBar(self.tr("Toolbar"))
+        self.toolBar.addAction(self.backAction)
+        self.toolBar.addAction(self.forwardAction)
 
-        self.searchLineEdit = KLineEdit(self)
-        self.searchLineEdit.setClickMessage(i18n("Search"))
-        self.toolBar().addWidget(self.searchLineEdit)
+        self.searchLineEdit = QLineEdit(self)
+        self.searchLineEdit.setPlaceholderText(self.tr("Search"))
+        self.toolBar.addWidget(self.searchLineEdit)
 
         self.packageView = QWebView(self)
         self.packageView.page().setLinkDelegationPolicy(QWebPage.DelegateAllLinks)
@@ -73,14 +70,13 @@ class Window(KMainWindow):
 
         central = QWidget()
         layout = QVBoxLayout(central)
-        layout.setMargin(0)
+        layout.setContentsMargins(0, 0, 0, 0)
         layout.addWidget(self.packageView)
         layout.addWidget(self.progressView)
         self.setCentralWidget(central)
 
-        QObject.connect(self.searchLineEdit, SIGNAL("returnPressed()"), self.startSearch)
-
-        QObject.connect(self.packageView, SIGNAL("linkClicked(const QUrl&)"), self.openUrl)
+        self.searchLineEdit.returnPressed.connect(self.startSearch)
+        self.packageView.linkClicked.connect(self.openUrl)
 
         self.updateHistoryActions()
         self.searchLineEdit.setFocus()
@@ -166,9 +162,9 @@ class Window(KMainWindow):
     def url_info(self, name):
         info = pkgmanager.getPackageInfo(name)
         version = info["Version"]
-        homepage = htmlize(info["Homepage"]) if ("Homepage" in info) else None
-        subtitle = htmlize(info["Summary"])
-        description = htmlize(info["Description"])
+        homepage = info["Homepage"] if ("Homepage" in info) else None
+        subtitle = info["Summary"]
+        description = info["Description"]
 
         relatedPackages = []
         for key in "Section", \
@@ -178,8 +174,6 @@ class Window(KMainWindow):
                 value = info[key]
                 if key in ("Depends", "Suggests", "Recommends", "Conflicts", "Replaces"):
                     value = pkgHtmlize(value)
-                else:
-                    value = htmlize(value)
                 relatedPackages.append((key, value))
 
         args = dict(
@@ -204,30 +198,11 @@ class Window(KMainWindow):
 
 
 def main():
-    aboutData = KAboutData(
-        "kapti", # appName
-        "", # catalogName
-        ki18n("Kapti"), # programName
-        "1.0")
-    aboutData.setLicense(KAboutData.License_GPL_V3)
-    aboutData.setShortDescription(ki18n("Simple frontend to install and remove packages"))
-    aboutData.setCopyrightStatement(ki18n("(c) 2010-2015 Aurélien Gâteau".encode("utf-8")))
-    aboutData.setProgramIconName("application-x-deb")
-
-    KCmdLineArgs.init(sys.argv, aboutData)
-
-    options = KCmdLineOptions()
-    options.add("+[search terms]", ki18n("Search terms"))
-    KCmdLineArgs.addCmdLineOptions(options)
-
-    app = KApplication()
+    app = QApplication(sys.argv)
 
     window = Window()
-    args = KCmdLineArgs.parsedArgs()
-    if args.count() > 0:
-        lst = []
-        for pos in range(args.count()):
-            lst.append(args.arg(pos))
+    if len(sys.argv) > 1:
+        lst = sys.argv[1:]
         window.searchLineEdit.setText(" ".join(lst))
         QTimer.singleShot(0, window.startSearch)
 

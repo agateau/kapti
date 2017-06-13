@@ -11,11 +11,11 @@
 
 <h1>{{ name }} <span class='version'>{{ version }}</span></h1>
 {% if homepage %}
-    <div class='site'>{{ homepage }}</div>
+    <div class='site'>{{ homepage | urlize }}</div>
 {% endif %}
 
 <div class='subtitle'>{{ subtitle }}</div>
-<p class='description'>{{ description }}</p>
+<p class='description'>{{ description | urlize | replace('\n', '<br>') }}</p>
 
 <p>
 {{ installRemoveButton(name, isInstalled) }}
