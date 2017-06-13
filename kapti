@@ -14,12 +14,6 @@ import pkgmanager
 
 from progressview import ProgressView
 
-def htmlize(text):
-    text = text.replace("\n", "<br>")
-    # FIXME
-    # return KStringHandler.tagUrls(text)
-    return text
-
 
 # Match blocks which are either at the beginning of the line, or after a ',' or
 # a '|'
@@ -168,9 +162,9 @@ class Window(QMainWindow):
     def url_info(self, name):
         info = pkgmanager.getPackageInfo(name)
         version = info["Version"]
-        homepage = htmlize(info["Homepage"]) if ("Homepage" in info) else None
-        subtitle = htmlize(info["Summary"])
-        description = htmlize(info["Description"])
+        homepage = info["Homepage"] if ("Homepage" in info) else None
+        subtitle = info["Summary"]
+        description = info["Description"]
 
         relatedPackages = []
         for key in "Section", \
@@ -180,8 +174,6 @@ class Window(QMainWindow):
                 value = info[key]
                 if key in ("Depends", "Suggests", "Recommends", "Conflicts", "Replaces"):
                     value = pkgHtmlize(value)
-                else:
-                    value = htmlize(value)
                 relatedPackages.append((key, value))
 
         args = dict(
