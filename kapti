@@ -150,7 +150,7 @@ class Window(QMainWindow):
         if packages:
             errorMessage = ""
         else:
-            errorMessage = i18n("Sorry, could not find any package matching \"%1\".", " ".join(criterias))
+            errorMessage = self.tr("Sorry, could not find any package matching \"{}\".").format(" ".join(criterias))
 
         args = dict(
             packages=packages,
