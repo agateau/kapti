@@ -83,7 +83,7 @@ class PkgcmdRunner(QObject):
         pkgcmd = os.path.join(pkgdir, 'pkgcmd.py')
         command = [pkgcmd, '--socket', self._socketPath] + args
 
-        self._proc = Popen(['kdesudo', '-c', ' '.join(command)])
+        self._proc = Popen(['kdesu', '-c', ' '.join(command)])
 
         self._scheduleUpdate()
 
