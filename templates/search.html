@@ -14,9 +14,9 @@
     <li>
         <div class='action'>{{ installRemoveButton(package.name, package.isInstalled) }}</div>
         <a class='package' href='info:{{ package.name }}'>
-            <img class='thumbnail' src='http://screenshots.debian.net/thumbnail/{{ package.name }}'>
+            <img class='thumbnail' src='{{ package.thumbnailUrl }}'>
             <h1>{{ package.name }}</h1>
-            <p>{{ package.description }}</p>
+            <p>{{ package.summary }}</p>
         </a>
     </li>
 {% endfor %}

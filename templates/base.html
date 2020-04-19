@@ -49,7 +49,6 @@ a.button {
     border-radius: 5px;
 
     color: white;
-    font-size: 90%;
     text-decoration: none;
     text-align: center;
 }
@@ -104,6 +103,10 @@ ul.packages li:hover {
     background-color: #f8f8f8;
 }
 
+.search-page a.button {
+    font-size: 90%;
+}
+
 /*- Info page --------------------------------*/
 .info-page .thumbnail {
     float: right;
@@ -112,6 +115,24 @@ ul.packages li:hover {
 .version {
     font-size: 40%;
     color: #888;
+}
+
+.install-status {
+    font-family: monospace;
+    font-weight: bold;
+}
+
+.installed {
+    color: green;
+}
+
+.not-installed {
+    color: darkred;
+}
+
+dd {
+    padding: 0;
+    margin: 0;
 }
 
 </style>

@@ -1,31 +1,49 @@
 {% extends "base.html" %}
 {% from 'install-remove-button.html' import installRemoveButton %}
 
+{% macro relatedPackagesGroup(groupName, relatedPackagesList) -%}
+    {% if relatedPackagesList %}
+        <dt>{{ groupName }}:</dt>
+        <dd>
+            <ul>
+            {% for relatedPackages in relatedPackagesList %}
+                <li>
+                    {% for pkg in relatedPackages %}
+                    {% if not loop.first %} | {% endif %}
+                    <span class='install-status {{ 'installed' if pkg.isInstalled else 'not-installed' }}'>{{ '✓' if pkg.isInstalled else '⨯' }}</span>
+                    <a href='info:{{ pkg.name }}'>{{ pkg.name }}</a> {{ pkg.relation }} {{ pkg.version }}
+                    {% endfor %}
+                </li>
+            {% endfor %}
+            </ul>
+        </dd>
+    {% endif %}
+{%- endmacro %}
+
 {% block content %}
 
 <div class='info-page'>
 
-<a href='screenshot:{{ name }}'>
-<img class='thumbnail' src='http://screenshots.debian.net/thumbnail/{{ name }}'>
+<a href='screenshot:{{ package.name }}'>
+<img class='thumbnail' src='{{ package.thumbnailUrl }}'>
 </a>
 
-<h1>{{ name }} <span class='version'>{{ version }}</span></h1>
+<h1>{{ package.name }} <span class='version'>{{ package.version }}</span></h1>
 {% if homepage %}
-    <div class='site'>{{ homepage | urlize }}</div>
+    <div class='site'>{{ package.homepage | urlize }}</div>
 {% endif %}
 
-<div class='subtitle'>{{ subtitle }}</div>
-<p class='description'>{{ description | urlize | replace('\n', '<br>') }}</p>
+<div class='subtitle'>{{ package.summary }}</div>
+<p class='description'>{{ package.description | urlize | replace('\n', '<br>') }}</p>
 
 <p>
-{{ installRemoveButton(name, isInstalled) }}
+{{ installRemoveButton(name, package.isInstalled) }}
 </p>
 
 <dl>
-{% for key, value in relatedPackages %}
-    <dt>{{ key }}</dt>
-    <dd>{{ value }}</dd>
-{% endfor %}
+    {{ relatedPackagesGroup("Depends", package.depends) }}
+    {{ relatedPackagesGroup("Recommends", package.recommends) }}
+    {{ relatedPackagesGroup("Suggests", package.suggests) }}
 </dl>
 
 </div> {# info-page #}

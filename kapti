@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 import os
-import re
 import sys
 
 from jinja2 import Environment, FileSystemLoader
@@ -13,21 +12,6 @@ from PyQt5.QtWebKitWidgets import QWebView, QWebPage
 import pkgmanager
 
 from progressview import ProgressView
-
-
-# Match blocks which are either at the beginning of the line, or after a ',' or
-# a '|'
-PKG_RX = re.compile(r"(^|[,|] )([a-z0-9][-.+a-z0-9]*\w)")
-def pkgHtmlize(text):
-    def replace_fcn(match):
-        text = match.group(1)
-        pkg = match.group(2)
-        if pkgmanager.isPackageInstalled(pkg):
-            inst = u' ✓'
-        else:
-            inst = ''
-        return u"{text}<a href='info:{pkg}'>{pkg}</a>{inst}".format(text=text, pkg=pkg, inst=inst)
-    return PKG_RX.sub(replace_fcn, text)
 
 
 class Window(QMainWindow):
@@ -160,41 +144,14 @@ class Window(QMainWindow):
         self.packageView.setHtml(tmpl.render(args))
 
     def url_info(self, name):
-        info = pkgmanager.getPackageInfo(name)
-        version = info["Version"]
-        homepage = info["Homepage"] if ("Homepage" in info) else None
-        subtitle = info["Summary"]
-        description = info["Description"]
-
-        relatedPackages = []
-        for key in "Section", \
-            "Depends", "Suggests", "Recommends", \
-            "Conflicts", "Replaces", "Bugs":
-            if key in info:
-                value = info[key]
-                if key in ("Depends", "Suggests", "Recommends", "Conflicts", "Replaces"):
-                    value = pkgHtmlize(value)
-                relatedPackages.append((key, value))
-
-        args = dict(
-            name=name,
-            version=version,
-            isInstalled=pkgmanager.isPackageInstalled(name),
-            subtitle=subtitle,
-            description=description,
-            relatedPackages=relatedPackages,
-            homepage=homepage,
-            )
+        package = pkgmanager.getPackage(name)
         tmpl = self.jinjaEnv.get_template("info.html")
-        self.packageView.setHtml(tmpl.render(args))
-
+        self.packageView.setHtml(tmpl.render(package=package))
 
     def url_screenshot(self, name):
-        args = dict(
-            name=name,
-            )
+        package = pkgmanager.getPackage(name)
         tmpl = self.jinjaEnv.get_template("screenshot.html")
-        self.packageView.setHtml(tmpl.render(args))
+        self.packageView.setHtml(tmpl.render(package=package))
 
 
 def main():

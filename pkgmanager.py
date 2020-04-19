@@ -2,7 +2,7 @@ import io
 import json
 import os
 import socket
-from collections import namedtuple
+
 from functools import reduce
 from subprocess import check_output, Popen
 from tempfile import NamedTemporaryFile
@@ -11,8 +11,41 @@ import apt
 
 from PyQt5.QtCore import QObject, pyqtSignal, QTimer
 
-Package = namedtuple("Package", ["name", "description", "isInstalled"])
 
+class RelatedPackage:
+    def __init__(self, name, relation=None, version=None):
+        self.name = name
+        self.relation = relation
+        self.version = version
+        self._installed = None
+
+    @property
+    def isInstalled(self):
+        if self._installed is None:
+            self._installed = isPackageInstalled(self.name)
+        return self._installed
+
+
+class Package:
+    def __init__(self, name, summary=None, isInstalled=None):
+        self.name = name
+        self.summary = summary
+        self.isInstalled = isInstalled
+        self.version = None
+        self.section = None
+        self.description = None
+        self.homepage = None
+        self.depends = []
+        self.recommends = []
+        self.suggests = []
+
+    @property
+    def thumbnailUrl(self):
+        return f"http://screenshots.debian.net/thumbnail/{self.name}"
+
+    @property
+    def screenshotUrl(self):
+        return f"http://screenshots.debian.net/screenshot/{self.name}"
 
 _cache = None
 
@@ -57,9 +90,9 @@ def searchPackages(searchTerms):
     lst = []
     for line in check_output_lines(["apt-cache", "search"] + searchTerms):
         line = line.strip()
-        name, description = line.split(" - ", 1)
+        name, summary = line.split(" - ", 1)
         isInstalled = isPackageInstalled(name)
-        lst.append(Package(name, description, isInstalled))
+        lst.append(Package(name, summary=summary, isInstalled=isInstalled))
     lst.sort(key=SortKeyCreator(searchTerms))
     return lst
 
@@ -135,34 +168,22 @@ def isPackageInstalled(name):
     return name in cache and cache[name].is_installed
 
 
-def _formatBaseDependency(dependency):
-    if dependency.relation:
-        return dependency.name + ' ' + dependency.relation + ' ' + dependency.version
-    else:
-        return dependency.name
+def _createRelatedPackages(dependencies):
+    """Creates a list of RelatedPackage from apt dependencies"""
+    return [RelatedPackage(x.name, x.relation, x.version) for x in dependencies]
 
 
-def _formatDependencyList(dependencyList):
-    lst = []
-    for dependency in dependencyList:
-        name = ' | '.join([_formatBaseDependency(x) for x in dependency])
-        lst.append(name)
-    return ', '.join(lst)
-
-
-def getPackageInfo(name):
-    pkg = _getCache()[name]
-    version = pkg.versions[0]
-    info = dict(
-        Section=pkg.section,
-        Homepage=version.homepage,
-        Recommends=_formatDependencyList(version.recommends),
-        Summary=version.summary,
-        Description=version.description,
-        Suggests=_formatDependencyList(version.suggests),
-        Depends=_formatDependencyList(version.dependencies),
-        Version=version.version,
-    )
-    return info
+def getPackage(name):
+    aptpkg = _getCache()[name]
+    version = aptpkg.versions[0]
+    pkg = Package(name, summary=version.summary, isInstalled=aptpkg.is_installed)
+    pkg.version = version.version
+    pkg.section = aptpkg.section
+    pkg.homepage = version.homepage
+    pkg.description = version.description
+    pkg.depends = [_createRelatedPackages(x) for x in version.dependencies]
+    pkg.recommends = [_createRelatedPackages(x) for x in version.recommends]
+    pkg.suggests = [_createRelatedPackages(x) for x in version.suggests]
+    return pkg
 
 # vi: ts=4 sw=4 et
