@@ -2,6 +2,7 @@ import io
 import json
 import os
 import socket
+import sys
 
 from functools import reduce
 from subprocess import check_output, Popen
@@ -112,8 +113,10 @@ class PkgcmdRunner(QObject):
         os.unlink(self._socketPath)
         self._server.bind(self._socketPath)
 
-        pkgdir = os.path.dirname(__file__)
-        pkgcmd = os.path.join(pkgdir, 'pkgcmd.py')
+        # TODO: use setuptools API to find the path to pkgcmd
+        pkgdir = os.path.dirname(sys.argv[0])
+        pkgcmd = os.path.join(pkgdir, 'pkgcmd')
+        assert os.path.exists(pkgcmd)
         command = [pkgcmd, '--socket', self._socketPath] + args
 
         self._proc = Popen(['kdesu', '-c', ' '.join(command)])

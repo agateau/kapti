@@ -1,17 +1,15 @@
-#!/usr/bin/env python3
-import os
 import sys
 
-from jinja2 import Environment, FileSystemLoader
+from jinja2 import Environment, PackageLoader
 
 from PyQt5.QtCore import QUrl, QTimer
 from PyQt5.QtGui import QIcon, QDesktopServices
 from PyQt5.QtWidgets import QMainWindow, QApplication, QAction, QLineEdit, QWidget, QVBoxLayout
 from PyQt5.QtWebKitWidgets import QWebView, QWebPage
 
-import pkgmanager
+from kapti import pkgmanager
 
-from progressview import ProgressView
+from kapti.progressview import ProgressView
 
 
 class Window(QMainWindow):
@@ -25,11 +23,7 @@ class Window(QMainWindow):
         self.refresh()
 
     def createJinjaEnv(self):
-        self.jinjaEnv = Environment()
-        dataDir = os.path.dirname(os.path.realpath(__file__))
-        tmplDir = os.path.join(dataDir, "templates")
-        print(tmplDir)
-        self.jinjaEnv.loader = FileSystemLoader(tmplDir)
+        self.jinjaEnv = Environment(loader=PackageLoader("kapti", "templates"))
 
     def createActions(self):
         self.backAction = QAction(QIcon.fromTheme("go-back"), self.tr("Back"), self)
