@@ -29,7 +29,7 @@
 </a>
 
 <h1>{{ package.name }} <span class='version'>{{ package.version }}</span></h1>
-{% if homepage %}
+{% if package.homepage %}
     <div class='site'>{{ package.homepage | urlize }}</div>
 {% endif %}
 
