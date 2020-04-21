@@ -2,14 +2,26 @@ import sys
 
 from jinja2 import Environment, PackageLoader
 
-from PyQt5.QtCore import QUrl, QTimer
+from PyQt5.QtCore import QUrl, QTimer, QSize
 from PyQt5.QtGui import QIcon, QDesktopServices
 from PyQt5.QtWidgets import QMainWindow, QApplication, QAction, QLineEdit, QWidget, QVBoxLayout
-from PyQt5.QtWebKitWidgets import QWebView, QWebPage
+from PyQt5.QtWebEngineWidgets import QWebEngineView, QWebEnginePage
 
 from kapti import pkgmanager
 
 from kapti.progressview import ProgressView
+
+
+class KaptiPage(QWebEnginePage):
+    def __init__(self, window):
+        super().__init__(window)
+        self.window = window
+
+    def acceptNavigationRequest(self, url, navigationType, isMainFrame):
+        if url.scheme() == "data":
+            return True
+        self.window.openUrl(url)
+        return False
 
 
 class Window(QMainWindow):
@@ -21,6 +33,9 @@ class Window(QMainWindow):
         self.createActions()
         self.createUi()
         self.refresh()
+
+    def sizeHint(self):
+        return QSize(800, 480)
 
     def createJinjaEnv(self):
         self.jinjaEnv = Environment(loader=PackageLoader("kapti", "templates"))
@@ -40,8 +55,8 @@ class Window(QMainWindow):
         self.searchLineEdit.setPlaceholderText(self.tr("Search"))
         self.toolBar.addWidget(self.searchLineEdit)
 
-        self.packageView = QWebView(self)
-        self.packageView.page().setLinkDelegationPolicy(QWebPage.DelegateAllLinks)
+        self.packageView = QWebEngineView(self)
+        self.packageView.setPage(KaptiPage(self))
 
         self.progressView = ProgressView()
         self.progressView.hide()
@@ -54,7 +69,6 @@ class Window(QMainWindow):
         self.setCentralWidget(central)
 
         self.searchLineEdit.returnPressed.connect(self.startSearch)
-        self.packageView.linkClicked.connect(self.openUrl)
 
         self.updateHistoryActions()
         self.searchLineEdit.setFocus()
