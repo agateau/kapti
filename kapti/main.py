@@ -119,8 +119,7 @@ class Window(QMainWindow):
         runner.done.connect(self.refresh)
 
     def url_welcome(self, arg):
-        tmpl = self.jinjaEnv.get_template("welcome.html")
-        self.packageView.setHtml(tmpl.render())
+        self.setHtml("welcome.html")
 
     def url_search(self, arg):
         criterias = arg.split(" ")
@@ -130,22 +129,20 @@ class Window(QMainWindow):
         else:
             errorMessage = self.tr("Sorry, could not find any package matching \"{}\".").format(" ".join(criterias))
 
-        args = dict(
-            packages=packages,
-            errorMessage=errorMessage
-            )
-        tmpl = self.jinjaEnv.get_template("search.html")
-        self.packageView.setHtml(tmpl.render(args))
+        self.setHtml("search.html", packages=packages,
+                     errorMessage=errorMessage)
 
     def url_info(self, name):
         package = pkgmanager.getPackage(name)
-        tmpl = self.jinjaEnv.get_template("info.html")
-        self.packageView.setHtml(tmpl.render(package=package))
+        self.setHtml("info.html", package=package)
 
     def url_screenshot(self, name):
         package = pkgmanager.getPackage(name)
-        tmpl = self.jinjaEnv.get_template("screenshot.html")
-        self.packageView.setHtml(tmpl.render(package=package))
+        self.setHtml("screenshot.html", package=package)
+
+    def setHtml(self, templateName, **args):
+        tmpl = self.jinjaEnv.get_template(templateName)
+        self.packageView.setHtml(tmpl.render(**args))
 
 
 def main():
