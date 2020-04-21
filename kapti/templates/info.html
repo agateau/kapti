@@ -37,7 +37,7 @@
 <p class='description'>{{ package.description | urlize | replace('\n', '<br>') }}</p>
 
 <p>
-{{ installRemoveButton(name, package.isInstalled) }}
+{{ installRemoveButton(package.name, package.isInstalled) }}
 </p>
 
 <dl>
