@@ -181,7 +181,7 @@ def getPackage(name):
     version = aptpkg.versions[0]
     pkg = Package(name, summary=version.summary, isInstalled=aptpkg.is_installed)
     pkg.version = version.version
-    pkg.section = aptpkg.section
+    pkg.section = version.section
     pkg.homepage = version.homepage
     pkg.description = version.description
     pkg.depends = [_createRelatedPackages(x) for x in version.dependencies]
